@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { formatDisplayLogin } from "@/lib/utils";
 
 export default function TeacherStudentsPage() {
   const { user } = useAuth();
@@ -110,6 +111,7 @@ export default function TeacherStudentsPage() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 px-4 text-xs text-muted-foreground font-medium">Ism</th>
+                <th className="text-left py-2 px-4 text-xs text-muted-foreground font-medium">Login</th>
                 <th className="text-left py-2 px-4 text-xs text-muted-foreground font-medium">Testlar</th>
                 <th className="text-left py-2 px-4 text-xs text-muted-foreground font-medium">O'rtacha</th>
                 <th className="text-left py-2 px-4 text-xs text-muted-foreground font-medium hidden md:table-cell">Muddat</th>
@@ -125,6 +127,11 @@ export default function TeacherStudentsPage() {
                       <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{s.full_name.charAt(0)}</div>
                       <span className="font-medium text-foreground">{s.full_name}</span>
                     </div>
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">
+                      {formatDisplayLogin(s.full_name.includes("@") ? s.full_name : "—")}
+                    </code>
                   </td>
                   <td className="py-2.5 px-4 text-muted-foreground">{s.tests} ta</td>
                   <td className="py-2.5 px-4">

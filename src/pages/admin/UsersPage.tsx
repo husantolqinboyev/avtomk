@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Users, UserPlus, Trash2, Search, KeyRound, UserMinus, Link2, Smartphone } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatDisplayLogin } from "@/lib/utils";
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -205,6 +206,7 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Login</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Telefon</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Rol</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">O'qituvchi</th>
@@ -218,6 +220,11 @@ export default function UsersPage() {
                 return (
                   <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-2.5 px-3 font-medium text-foreground">{p.full_name}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">
+                        {formatDisplayLogin(p.full_name.includes("@") ? p.full_name : "—")}
+                      </code>
+                    </td>
                     <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">{p.phone || "—"}</td>
                     <td className="py-2.5 px-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.role === "admin" ? "bg-primary/10 text-primary" : p.role === "teacher" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
