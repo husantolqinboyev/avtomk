@@ -55,9 +55,18 @@ export default function UsersPage() {
   const students = (profiles || []).filter((p) => p.role === "student");
 
   const invokeEdge = async (body: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("No active session found");
+    }
+
     const { data, error } = await supabase.functions.invoke("create-user", {
       body,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
+
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
     return data;
