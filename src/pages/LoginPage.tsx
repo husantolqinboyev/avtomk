@@ -18,7 +18,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    const result = await login(email, password);
+    const emailWithDomain = email.includes("@") ? email : `${email}@avto.uz`;
+    const result = await login(emailWithDomain, password);
     setIsLoading(false);
     if (result.error) {
       setError(result.error);
@@ -73,7 +74,7 @@ export default function LoginPage() {
           </div>
 
           <h3 className="text-2xl font-display font-bold text-foreground mb-1">Tizimga kirish</h3>
-          <p className="text-sm text-muted-foreground mb-8">Email va parolingizni kiriting</p>
+          <p className="text-sm text-muted-foreground mb-8">Login va parolingizni kiriting</p>
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
@@ -83,12 +84,12 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-foreground mb-1.5 block">Email</label>
+              <label className="text-xs font-medium text-foreground mb-1.5 block">Login</label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@avtotalim.uz"
+                placeholder="admin"
                 required
                 className="w-full h-11 px-4 rounded-lg border border-input bg-card text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />

@@ -54,15 +54,12 @@ export default function UsersPage() {
   const students = (profiles || []).filter((p) => p.role === "student");
 
   const invokeEdge = async (body: any) => {
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
-    const res = await supabase.functions.invoke("create-user", {
+    const { data, error } = await supabase.functions.invoke("create-user", {
       body,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    if (res.error) throw new Error(res.error.message);
-    if (res.data?.error) throw new Error(res.data.error);
-    return res.data;
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    return data;
   };
 
   const handleCreate = async () => {
@@ -72,7 +69,8 @@ export default function UsersPage() {
     }
     setCreating(true);
     try {
-      const data = await invokeEdge({ email: form.email, password: form.password, full_name: form.full_name, role: form.role });
+      const emailWithDomain = form.email.includes("@") ? form.email : `${form.email}@avto.uz`;
+      const data = await invokeEdge({ email: emailWithDomain, password: form.password, full_name: form.full_name, role: form.role });
       if (form.expires_at && data?.user?.id) {
         await supabase.from("profiles").update({ expires_at: form.expires_at }).eq("user_id", data.user.id);
       }
@@ -162,8 +160,8 @@ export default function UsersPage() {
             <Input placeholder="Sardor Karimov" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Email</Label>
-            <Input type="email" placeholder="email@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Label className="text-xs">Login</Label>
+            <Input type="text" placeholder="sardor" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Parol</Label>
@@ -222,9 +220,8 @@ export default function UsersPage() {
                     <td className="py-2.5 px-3 font-medium text-foreground">{p.full_name}</td>
                     <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">{p.phone || "—"}</td>
                     <td className="py-2.5 px-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        p.role === "admin" ? "bg-primary/10 text-primary" : p.role === "teacher" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                      }`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.role === "admin" ? "bg-primary/10 text-primary" : p.role === "teacher" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                        }`}>
                         {p.role === "admin" ? "Admin" : p.role === "teacher" ? "O'qituvchi" : "O'quvchi"}
                       </span>
                     </td>
