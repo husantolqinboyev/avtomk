@@ -58,17 +58,21 @@ export default function UsersPage() {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
-    if (!token) {
-      console.error("No active session found");
-    }
+    console.log("InvokeEdge Debug:", { hasSession: !!session, hasToken: !!token });
 
     const { data, error } = await supabase.functions.invoke("create-user", {
       body,
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
-    if (error) throw new Error(error.message);
-    if (data?.error) throw new Error(data.error);
+    if (error) {
+      console.error("Supabase Function Error:", error);
+      throw new Error(error.message);
+    }
+    if (data?.error) {
+      console.error("Function Logic Error:", data.error);
+      throw new Error(data.error);
+    }
     return data;
   };
 
