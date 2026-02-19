@@ -205,8 +205,7 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Login</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism / Login</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Telefon</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Rol</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">O'qituvchi</th>
@@ -219,11 +218,10 @@ export default function UsersPage() {
                 const studentAssignment = assignments?.find((a) => a.student_id === p.user_id);
                 return (
                   <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-2.5 px-3 font-medium text-foreground">{p.full_name}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono">
-                        {formatDisplayLogin(p.full_name.includes("@") ? p.full_name : "—")}
-                      </code>
+                    <td className="py-2.5 px-3">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">{formatDisplayLogin(p.full_name)}</span>
+                      </div>
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">{p.phone || "—"}</td>
                     <td className="py-2.5 px-3">
