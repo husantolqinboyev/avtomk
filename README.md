@@ -137,7 +137,7 @@ npm run build
 
 ## Litsenziya
 
-Bu loyiha MIT litsenziyasi ostida tarqatiladi.
+Bu loyiha MIT litsenziyasi ostida tarqatiladi.lj
 
 ## Aloqa
 
