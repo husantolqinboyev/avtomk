@@ -27,7 +27,7 @@ async function verifyAdmin(supabaseAdmin: any, req: Request) {
     return { error: 'Faqat adminlar uchun', status: 403 };
   }
 
-  return { caller, error: null };
+  return { caller, error: null, status: 200 };
 }
 
 serve(async (req) => {
@@ -41,10 +41,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { error: authError, status: authStatus } = await verifyAdmin(supabaseAdmin, req);
-    if (authError) {
-      return new Response(JSON.stringify({ error: authError }), {
-        status: authStatus,
+    const authResult = await verifyAdmin(supabaseAdmin, req);
+    if (authResult.error) {
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
