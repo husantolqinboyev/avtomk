@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [userName, setUserName] = useState("");
+  // loading: true faqat boshlang'ich holat aniqlanguncha
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("theme") as "light" | "dark") || "dark"
@@ -37,31 +38,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }
 
-  const fetchUserRole = async (userId: string) => {
-    const { data } = await supabase.rpc("get_user_role", { _user_id: userId });
-    return data as UserRole | null;
+  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
+    try {
+      const { data } = await supabase.rpc("get_user_role", { _user_id: userId });
+      return data as UserRole | null;
+    } catch {
+      return null;
+    }
   };
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", userId)
-      .single();
-    if (error) {
-      console.warn("Profile not found for user:", userId);
+  const fetchProfile = async (userId: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", userId)
+        .single();
+      if (error) {
+        console.warn("Profile not found for user:", userId);
+        return "";
+      }
+      return data?.full_name || "";
+    } catch {
       return "";
     }
-    return data?.full_name || "";
   };
 
   useEffect(() => {
+    // Fallback: agar 8 soniyada holat aniqlanmasa, loading'ni o'chiramiz
+    const fallbackTimer = setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session?.user?.email);
         if (session?.user) {
           setUser(session.user);
-          // Use setTimeout to avoid Supabase deadlock
+          // setTimeout: Supabase deadlock'dan qochish uchun
           setTimeout(async () => {
             const [userRole, name] = await Promise.all([
               fetchUserRole(session.user.id),
@@ -70,12 +84,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log("User role:", userRole, "Name:", name);
             setRole(userRole);
             setUserName(name || session.user.email || "");
+            clearTimeout(fallbackTimer);
             setLoading(false);
           }, 0);
         } else {
           setUser(null);
           setRole(null);
           setUserName("");
+          clearTimeout(fallbackTimer);
           setLoading(false);
         }
       }
@@ -83,10 +99,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session:", session?.user?.email);
-      if (!session) setLoading(false);
+      // Agar session yo'q bo'lsa, darhol loading'ni o'chiramiz
+      if (!session) {
+        clearTimeout(fallbackTimer);
+        setLoading(false);
+      }
+      // Session bo'lsa, onAuthStateChange event'i loading'ni o'chiradi
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -105,6 +129,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("theme", next);
   };
 
+  // isAuthenticated: user mavjud VA rol yuklanib bo'lgan bo'lsa true
+  // loading=false bo'lganda role tekshiramiz (role null bo'lsa foydalanuvchi tizimda yo'q)
   const isAuthenticated = !!user && !!role;
 
   return (

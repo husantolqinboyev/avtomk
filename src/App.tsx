@@ -28,8 +28,11 @@ import TeacherCategorizedTestsPage from "./pages/teacher/TeacherCategorizedTests
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
-  const { isAuthenticated, role, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  const { isAuthenticated, user, role, loading } = useAuth();
+  const spinner = <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  // Boshlang'ich yuklash yoki: user kirgani ma'lum, lekin role hali kelmagan
+  if (loading) return spinner;
+  if (user && !role) return spinner;
   if (!isAuthenticated) return <Navigate to="/" replace />;
   if (!allowedRoles.includes(role!)) return <Navigate to={`/${role}`} replace />;
   return <>{children}</>;
@@ -45,7 +48,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={isAuthenticated ? <Navigate to={`/${role}`} replace /> : <LoginPage />} />
-      
+
       {/* Admin routes */}
       <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><UsersPage /></ProtectedRoute>} />
@@ -53,7 +56,7 @@ function AppRoutes() {
       <Route path="/admin/topics" element={<ProtectedRoute allowedRoles={["admin"]}><TopicsPage /></ProtectedRoute>} />
       <Route path="/admin/categorized" element={<ProtectedRoute allowedRoles={["admin"]}><TeacherCategorizedTestsPage /></ProtectedRoute>} />
       <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
-      
+
       {/* Teacher routes */}
       <Route path="/teacher" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherDashboard /></ProtectedRoute>} />
       <Route path="/teacher/students" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherStudentsPage /></ProtectedRoute>} />
@@ -64,7 +67,7 @@ function AppRoutes() {
       <Route path="/teacher/results" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherResultsPage /></ProtectedRoute>} />
       <Route path="/teacher/notifications" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherNotificationsPage /></ProtectedRoute>} />
       <Route path="/teacher/*" element={<ProtectedRoute allowedRoles={["teacher"]}><TeacherDashboard /></ProtectedRoute>} />
-      
+
       {/* Student routes */}
       <Route path="/student" element={<ProtectedRoute allowedRoles={["student"]}><StudentDashboard /></ProtectedRoute>} />
       <Route path="/student/topics" element={<ProtectedRoute allowedRoles={["student"]}><StudentTopicsPage /></ProtectedRoute>} />
@@ -75,7 +78,7 @@ function AppRoutes() {
       <Route path="/student/results" element={<ProtectedRoute allowedRoles={["student"]}><StudentResultsPage /></ProtectedRoute>} />
       <Route path="/student/notifications" element={<ProtectedRoute allowedRoles={["student"]}><StudentNotificationsPage /></ProtectedRoute>} />
       <Route path="/student/*" element={<ProtectedRoute allowedRoles={["student"]}><StudentDashboard /></ProtectedRoute>} />
-      
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
