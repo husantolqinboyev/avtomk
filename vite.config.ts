@@ -34,9 +34,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "AvtoTa'lim",
-        short_name: "AvtoTa'lim",
-        description: "Avtomobil haydash nazariy imtihoniga tayyorlanish tizimi",
+        name: "AVTOmaktabb",
+        short_name: "AVTOmaktabb",
+        description: "Aqlli haydovchilar maktabi tizimi",
         start_url: "/",
         display: "standalone",
         background_color: "#0a0a0b",

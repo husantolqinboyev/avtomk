@@ -36,10 +36,17 @@ export default function UsersPage() {
     queryFn: async () => {
       const { data: profs } = await supabase.from("profiles").select("*");
       const { data: roles } = await supabase.from("user_roles").select("*");
-      return (profs || []).map((p) => ({
-        ...p,
-        role: roles?.find((r) => r.user_id === p.user_id)?.role || "student",
-      }));
+      
+      return (profs || []).map((p: any) => {
+        // Email ni profile dan olishga harakat qilamiz
+        // Agar profile da email bo'lmasa, user_id dan login yasaymiz
+        const email = p.email || `${p.user_id}@avto.uz`;
+        return {
+          ...p,
+          email: email,
+          role: roles?.find((r) => r.user_id === p.user_id)?.role || "student",
+        };
+      });
     },
   });
 
@@ -55,27 +62,28 @@ export default function UsersPage() {
   const students = (profiles || []).filter((p) => p.role === "student");
 
   const invokeEdge = async (body: any) => {
-    console.log("Invoking Edge Function with body:", body);
-    
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
-    
-    const { data, error } = await supabase.functions.invoke("create-user", {
-      body,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    if (error) {
-      console.error("Supabase Function Invocation Error:", error);
-      throw new Error(error.message);
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      throw new Error("Siz tizimga kirmagansiz. Qayta kirishingiz kerak.");
     }
+    
+    const token = session.access_token;
+    
+    // Use Supabase client
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body,
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (data?.error) {
-      console.error("Function Logic Error:", data.error);
-      throw new Error(data.error);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new Error(error.message || "Foydalanuvchi yaratishda xatolik");
     }
-
-    return data;
   };
 
   const handleCreate = async () => {
@@ -220,7 +228,8 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism / Login</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Login</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Telefon</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Rol</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">O'qituvchi</th>
@@ -234,9 +243,10 @@ export default function UsersPage() {
                 return (
                   <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-2.5 px-3">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-foreground">{formatDisplayLogin(p.full_name)}</span>
-                      </div>
+                      <span className="font-medium text-foreground">{p.full_name}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">
+                      <span className="text-xs font-mono">{formatDisplayLogin(p.email)}</span>
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell">{p.phone || "—"}</td>
                     <td className="py-2.5 px-3">
@@ -291,7 +301,7 @@ export default function UsersPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">Foydalanuvchilar topilmadi</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Foydalanuvchilar topilmadi</td></tr>
               )}
             </tbody>
           </table>
