@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -64,13 +64,25 @@ export default function StudentCategorizedTestsPage() {
   const q = questions?.[currentQ];
   const totalQ = questions?.length || 0;
 
+  const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleAnswer = (option: string) => {
     if (revealed[currentQ]) return;
     setAnswers({ ...answers, [currentQ]: option });
     setRevealed({ ...revealed, [currentQ]: true });
+
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+    nextTimeoutRef.current = setTimeout(() => {
+      if (currentQ < totalQ - 1) {
+        setCurrentQ(prev => prev + 1);
+      } else {
+        resetToTickets();
+      }
+    }, 3000);
   };
 
   const resetToTickets = () => {
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
     setActiveTicketId(null);
     setCurrentQ(0);
     setAnswers({});
@@ -120,7 +132,7 @@ export default function StudentCategorizedTestsPage() {
                   return (
                     <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi+1}`}.</span>{opt}
+                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{opt}
                     </button>
                   );
                 })}
@@ -143,7 +155,7 @@ export default function StudentCategorizedTestsPage() {
 
           <div className="flex justify-end mt-4">
             {isRevealed && currentQ < totalQ - 1 && (
-              <Button size="sm" onClick={() => setCurrentQ(currentQ + 1)}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
             )}
             {isRevealed && currentQ === totalQ - 1 && (
               <Button size="sm" onClick={resetToTickets}>Yakunlash <CheckCircle className="w-4 h-4 ml-1" /></Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -108,10 +108,21 @@ export default function StudentTestsPage() {
   const q = questions?.[currentQ];
   const totalQ = questions?.length || 0;
 
+  const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleAnswer = (option: string) => {
     if (revealed[currentQ]) return; // already answered
     setAnswers({ ...answers, [currentQ]: option });
     setRevealed({ ...revealed, [currentQ]: true });
+
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+    nextTimeoutRef.current = setTimeout(() => {
+      if (currentQ < totalQ - 1) {
+        goNext();
+      } else {
+        handleFinish();
+      }
+    }, 3000);
   };
 
   const handleFinish = useCallback(async () => {
@@ -147,6 +158,7 @@ export default function StudentTestsPage() {
   };
 
   const startTest = (ticketId: string) => {
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
     setActiveTicketId(ticketId);
     setCurrentQ(0);
     setAnswers({});
@@ -163,6 +175,7 @@ export default function StudentTestsPage() {
   };
 
   const goNext = () => {
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
     if (currentQ < totalQ - 1) {
       setCurrentQ(currentQ + 1);
     }
@@ -179,9 +192,8 @@ export default function StudentTestsPage() {
         <div className="max-w-2xl mx-auto select-none" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-muted-foreground">{currentQ + 1} / {totalQ}</span>
-            <span className={`flex items-center gap-1 text-sm font-mono font-bold px-3 py-1 rounded-full ${
-              timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
-            }`}>
+            <span className={`flex items-center gap-1 text-sm font-mono font-bold px-3 py-1 rounded-full ${timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+              }`}>
               <Timer className="w-3.5 h-3.5" /> {formatTime(timeLeft)}
             </span>
           </div>
@@ -249,12 +261,11 @@ export default function StudentTestsPage() {
           <div className="flex flex-wrap gap-1.5 mt-6 justify-center">
             {questions.map((_, i) => (
               <button key={i} onClick={() => setCurrentQ(i)}
-                className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
-                  i === currentQ ? "bg-primary text-primary-foreground" :
-                  revealed[i] && answers[i] === questions[i].correct_answer ? "bg-success/20 text-success border border-success/30" :
-                  revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
-                  "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}>
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${i === currentQ ? "bg-primary text-primary-foreground" :
+                    revealed[i] && answers[i] === questions[i].correct_answer ? "bg-success/20 text-success border border-success/30" :
+                      revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
+                        "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}>
                 {i + 1}
               </button>
             ))}
@@ -273,9 +284,8 @@ export default function StudentTestsPage() {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto">
           <div className="rounded-xl border border-border bg-card p-6 shadow-card text-center mb-6">
-            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${
-              score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-            }`}>{score}%</div>
+            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+              }`}>{score}%</div>
             <h2 className="text-xl font-display font-bold text-foreground">
               {score >= 80 ? "Ajoyib!" : score >= 60 ? "Yaxshi" : "Ko'proq mashq qiling"}
             </h2>

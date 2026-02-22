@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -69,7 +69,7 @@ export default function StudentRandomTestsPage() {
       // Try to get all questions from IndexedDB first
       let allQuestions: Question[] = [];
       const allCached = await getAllCachedQuestions();
-      
+
       if (allCached.length > 0) {
         allQuestions = allCached as Question[];
       } else {
@@ -105,10 +105,21 @@ export default function StudentRandomTestsPage() {
     setLoading(false);
   };
 
+  const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleAnswer = (option: string) => {
     if (revealed[currentQ]) return;
     setAnswers({ ...answers, [currentQ]: option });
     setRevealed({ ...revealed, [currentQ]: true });
+
+    if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+    nextTimeoutRef.current = setTimeout(() => {
+      if (currentQ < questions.length - 1) {
+        setCurrentQ(prev => prev + 1);
+      } else {
+        handleFinish();
+      }
+    }, 3000);
   };
 
   const handleFinish = useCallback(async () => {
@@ -147,9 +158,8 @@ export default function StudentRandomTestsPage() {
         <div className="max-w-2xl mx-auto select-none" style={{ userSelect: "none" }}>
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-muted-foreground">{currentQ + 1} / {totalQ}</span>
-            <span className={`flex items-center gap-1 text-sm font-mono font-bold px-3 py-1 rounded-full ${
-              timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
-            }`}>
+            <span className={`flex items-center gap-1 text-sm font-mono font-bold px-3 py-1 rounded-full ${timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+              }`}>
               <Timer className="w-3.5 h-3.5" /> {formatTime(timeLeft)}
             </span>
           </div>
@@ -175,7 +185,7 @@ export default function StudentRandomTestsPage() {
                   return (
                     <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi+1}`}.</span>{opt}
+                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{opt}
                     </button>
                   );
                 })}
@@ -198,7 +208,7 @@ export default function StudentRandomTestsPage() {
 
           <div className="flex justify-end mt-4">
             {isRevealed && currentQ < totalQ - 1 && (
-              <Button size="sm" onClick={() => setCurrentQ(currentQ + 1)}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
             )}
             {isRevealed && currentQ === totalQ - 1 && (
               <Button size="sm" onClick={handleFinish}>Yakunlash <CheckCircle className="w-4 h-4 ml-1" /></Button>
@@ -208,12 +218,11 @@ export default function StudentRandomTestsPage() {
           <div className="flex flex-wrap gap-1.5 mt-6 justify-center">
             {questions.map((_, i) => (
               <button key={i} onClick={() => setCurrentQ(i)}
-                className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
-                  i === currentQ ? "bg-primary text-primary-foreground" :
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${i === currentQ ? "bg-primary text-primary-foreground" :
                   revealed[i] && answers[i] === questions[i].correct_answer ? "bg-success/20 text-success border border-success/30" :
-                  revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
-                  "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}>
+                    revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
+                      "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}>
                 {i + 1}
               </button>
             ))}
@@ -232,9 +241,8 @@ export default function StudentRandomTestsPage() {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto">
           <div className="rounded-xl border border-border bg-card p-6 shadow-card text-center mb-6">
-            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${
-              score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-            }`}>{score}%</div>
+            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+              }`}>{score}%</div>
             <h2 className="text-xl font-display font-bold text-foreground">
               {score >= 80 ? "Ajoyib!" : score >= 60 ? "Yaxshi" : "Ko'proq mashq qiling"}
             </h2>
@@ -259,11 +267,11 @@ export default function StudentRandomTestsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-border bg-card p-6 shadow-card hover:shadow-elevated transition-all cursor-pointer text-center"
-          onClick={() => !loading && startTest(30)}>
+          onClick={() => !loading && startTest(20)}>
           <div className="w-14 h-14 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-3">
             <Shuffle className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="font-display font-bold text-foreground text-lg">30 ta savol</h3>
+          <h3 className="font-display font-bold text-foreground text-lg">20 ta savol</h3>
           <p className="text-xs text-muted-foreground mt-1">Aralash biletlardan</p>
           <Button size="sm" className="mt-3" disabled={loading}>
             <Play className="w-4 h-4 mr-1" /> Boshlash
