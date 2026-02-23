@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { formatDisplayLogin } from "@/lib/utils";
 
 export default function UsersPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
@@ -36,7 +36,7 @@ export default function UsersPage() {
     queryFn: async () => {
       const { data: profs } = await supabase.from("profiles").select("*");
       const { data: roles } = await supabase.from("user_roles").select("*");
-      
+
       return (profs || []).map((p: any) => {
         // Email ni profile dan olishga harakat qilamiz
         // Agar profile da email bo'lmasa, user_id dan login yasaymiz
@@ -64,11 +64,11 @@ export default function UsersPage() {
   const invokeEdge = async (body: any) => {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
-      throw new Error("Siz tizimga kirmagansiz. Qayta kirishingiz kerak.");
+      throw new Error(t("Siz tizimga kirmagansiz. Qayta kirishingiz kerak."));
     }
-    
+
     const token = session.access_token;
-    
+
     // Use Supabase client
     try {
       const { data, error } = await supabase.functions.invoke("create-user", {
@@ -88,7 +88,7 @@ export default function UsersPage() {
 
   const handleCreate = async () => {
     if (!form.full_name || !form.email || !form.password) {
-      toast({ title: "Barcha maydonlarni to'ldiring", variant: "destructive" });
+      toast({ title: t("Barcha maydonlarni to'ldiring"), variant: "destructive" });
       return;
     }
     setCreating(true);
@@ -98,7 +98,7 @@ export default function UsersPage() {
       if (form.expires_at && data?.user?.id) {
         await supabase.from("profiles").update({ expires_at: form.expires_at }).eq("user_id", data.user.id);
       }
-      toast({ title: "Foydalanuvchi yaratildi!" });
+      toast({ title: t("Foydalanuvchi yaratildi!") });
       setForm({ full_name: "", email: "", password: "", role: "student", expires_at: "" });
       refetch();
     } catch (e: any) {
@@ -109,10 +109,10 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (userId: string, name: string) => {
-    if (!confirm(`${name} o'chirilsinmi?`)) return;
+    if (!confirm(t("{name} o'chirilsinmi?").replace("{name}", name))) return;
     try {
       await invokeEdge({ action: "delete", user_id: userId });
-      toast({ title: "Foydalanuvchi o'chirildi" });
+      toast({ title: t("Foydalanuvchi o'chirildi") });
       refetch(); refetchAssign();
     } catch (e: any) {
       toast({ title: "Xatolik", description: e.message, variant: "destructive" });
@@ -121,13 +121,13 @@ export default function UsersPage() {
 
   const handlePasswordChange = async () => {
     if (!newPassword || newPassword.length < 6) {
-      toast({ title: "Parol kamida 6 belgidan iborat bo'lishi kerak", variant: "destructive" });
+      toast({ title: t("Parol kamida 6 belgidan iborat bo'lishi kerak"), variant: "destructive" });
       return;
     }
     setPwLoading(true);
     try {
       await invokeEdge({ action: "update_password", user_id: pwDialog.userId, password: newPassword });
-      toast({ title: "Parol yangilandi!" });
+      toast({ title: t("Parol yangilandi!") });
       setPwDialog({ open: false, userId: "", name: "" });
       setNewPassword("");
     } catch (e: any) {
@@ -145,7 +145,7 @@ export default function UsersPage() {
         student_id: assignDialog.studentId,
       });
       if (error) throw error;
-      toast({ title: "O'quvchi biriktirildi!" });
+      toast({ title: t("O'quvchi biriktirildi!") });
       setAssignDialog({ open: false, studentId: "", name: "" });
       setSelectedTeacher("");
       refetchAssign();
@@ -156,7 +156,7 @@ export default function UsersPage() {
 
   const handleUnassign = async (teacherId: string, studentId: string) => {
     await supabase.from("teacher_students").delete().eq("teacher_id", teacherId).eq("student_id", studentId);
-    toast({ title: "Biriktirish bekor qilindi" });
+    toast({ title: t("Biriktirish bekor qilindi") });
     refetchAssign();
   };
 
@@ -169,45 +169,45 @@ export default function UsersPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">Foydalanuvchilar</h1>
-        <p className="text-sm text-muted-foreground">O'qituvchi va o'quvchi akkauntlarini boshqarish</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("Foydalanuvchilar")}</h1>
+        <p className="text-sm text-muted-foreground">{t("O'qituvchi va o'quvchi akkauntlarini boshqarish")}</p>
       </div>
 
       {/* Create form */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5 shadow-card mb-6">
         <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-primary" /> Yangi akkaunt yaratish
+          <UserPlus className="w-4 h-4 text-primary" /> {t("Yangi akkaunt yaratish")}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">To'liq ism</Label>
-            <Input placeholder="Sardor Karimov" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+            <Label className="text-xs">{t("To'liq ism")}</Label>
+            <Input placeholder={t("Sardor Karimov")} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Login</Label>
+            <Label className="text-xs">{t("Login")}</Label>
             <Input type="text" placeholder="sardor" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Parol</Label>
-            <Input type="password" placeholder="Kamida 6 belgi" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <Label className="text-xs">{t("Parol")}</Label>
+            <Input type="password" placeholder={t("Kamida 6 belgi")} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Rol</Label>
+            <Label className="text-xs">{t("Rol")}</Label>
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as any })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="student">O'quvchi</SelectItem>
-                <SelectItem value="teacher">O'qituvchi</SelectItem>
+                <SelectItem value="student">{t("O'quvchi")}</SelectItem>
+                <SelectItem value="teacher">{t("O'qituvchi")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Faoliyat muddati</Label>
+            <Label className="text-xs">{t("Faoliyat muddati")}</Label>
             <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
           </div>
           <div className="flex items-end">
             <Button onClick={handleCreate} disabled={creating} className="w-full">
-              {creating ? "Yaratilmoqda..." : "Yaratish"}
+              {creating ? t("Yaratilmoqda...") : t("Yaratish")}
             </Button>
           </div>
         </div>
@@ -217,24 +217,24 @@ export default function UsersPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" /> Barcha foydalanuvchilar ({filtered.length})
+            <Users className="w-4 h-4 text-primary" /> {t("Barcha foydalanuvchilar")} ({filtered.length})
           </h3>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Qidirish..." className="pl-9 h-9 w-48" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={t("Qidirish...")} className="pl-9 h-9 w-48" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Ism</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Login</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">Telefon</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Rol</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">O'qituvchi</th>
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">Muddat</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Amallar</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">{t("Ism")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">{t("Login")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">{t("Telefon")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">{t("Rol")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">{t("O'qituvchi")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">{t("Muddat")}</th>
+                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">{t("Amallar")}</th>
               </tr>
             </thead>
             <tbody>
@@ -252,7 +252,7 @@ export default function UsersPage() {
                     <td className="py-2.5 px-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.role === "admin" ? "bg-primary/10 text-primary" : p.role === "teacher" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
                         }`}>
-                        {p.role === "admin" ? "Admin" : p.role === "teacher" ? "O'qituvchi" : "O'quvchi"}
+                        {p.role === "admin" ? t("Admin") : p.role === "teacher" ? t("O'qituvchi") : t("O'quvchi")}
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-xs text-muted-foreground hidden md:table-cell">
@@ -265,12 +265,12 @@ export default function UsersPage() {
                         </span>
                       ) : p.role === "student" ? (
                         <button onClick={() => setAssignDialog({ open: true, studentId: p.user_id, name: p.full_name })} className="text-primary hover:underline flex items-center gap-1">
-                          <Link2 className="w-3 h-3" /> Biriktirish
+                          <Link2 className="w-3 h-3" /> {t("Biriktirish")}
                         </button>
                       ) : "—"}
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground text-xs hidden md:table-cell">
-                      {p.expires_at ? new Date(p.expires_at).toLocaleDateString("uz") : "Cheksiz"}
+                      {p.expires_at ? new Date(p.expires_at).toLocaleDateString("uz") : t("Cheksiz")}
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       {p.role !== "admin" && (
@@ -301,7 +301,7 @@ export default function UsersPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Foydalanuvchilar topilmadi</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">{t("Foydalanuvchilar topilmadi")}</td></tr>
               )}
             </tbody>
           </table>
@@ -311,14 +311,14 @@ export default function UsersPage() {
       {/* Password Dialog */}
       <Dialog open={pwDialog.open} onOpenChange={(o) => setPwDialog({ ...pwDialog, open: o })}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{pwDialog.name} — Parolni o'zgartirish</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{pwDialog.name} — {t("Parolni o'zgartirish")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
-            <Label className="text-xs">Yangi parol</Label>
-            <Input type="password" placeholder="Kamida 6 belgi" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <Label className="text-xs">{t("Yangi parol")}</Label>
+            <Input type="password" placeholder={t("Kamida 6 belgi")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPwDialog({ open: false, userId: "", name: "" })}>Bekor qilish</Button>
-            <Button onClick={handlePasswordChange} disabled={pwLoading}>{pwLoading ? "Saqlanmoqda..." : "Saqlash"}</Button>
+            <Button variant="outline" onClick={() => setPwDialog({ open: false, userId: "", name: "" })}>{t("Bekor qilish")}</Button>
+            <Button onClick={handlePasswordChange} disabled={pwLoading}>{pwLoading ? t("Saqlanmoqda...") : t("Saqlash")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -326,21 +326,21 @@ export default function UsersPage() {
       {/* Assign Dialog */}
       <Dialog open={assignDialog.open} onOpenChange={(o) => setAssignDialog({ ...assignDialog, open: o })}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{assignDialog.name} — O'qituvchiga biriktirish</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{assignDialog.name} — {t("O'qituvchiga biriktirish")}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
-            <Label className="text-xs">O'qituvchini tanlang</Label>
+            <Label className="text-xs">{t("O'qituvchini tanlang")}</Label>
             <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-              <SelectTrigger><SelectValue placeholder="O'qituvchi..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("O'qituvchi...")} /></SelectTrigger>
               <SelectContent>
-                {teachers.map((t) => (
-                  <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
+                {teachers.map((t_node) => (
+                  <SelectItem key={t_node.user_id} value={t_node.user_id}>{t_node.full_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignDialog({ open: false, studentId: "", name: "" })}>Bekor qilish</Button>
-            <Button onClick={handleAssign} disabled={!selectedTeacher}>Biriktirish</Button>
+            <Button variant="outline" onClick={() => setAssignDialog({ open: false, studentId: "", name: "" })}>{t("Bekor qilish")}</Button>
+            <Button onClick={handleAssign} disabled={!selectedTeacher}>{t("Biriktirish")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

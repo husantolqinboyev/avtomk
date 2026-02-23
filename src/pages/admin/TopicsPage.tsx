@@ -13,7 +13,7 @@ import ImageUpload from "@/components/ImageUpload";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function TopicsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -30,7 +30,7 @@ export default function TopicsPage() {
 
   const handleCreate = async () => {
     if (!form.title) {
-      toast({ title: "Mavzu nomini kiriting", variant: "destructive" });
+      toast({ title: t("Mavzu nomini kiriting"), variant: "destructive" });
       return;
     }
     setCreating(true);
@@ -44,7 +44,7 @@ export default function TopicsPage() {
         created_by: user?.id || null,
       });
       if (error) throw error;
-      toast({ title: "Mavzu yaratildi" });
+      toast({ title: t("Mavzu yaratildi") });
       setForm({ title: "", description: "", image_url: "", content: "" });
       setShowCreate(false);
       refetch();
@@ -61,7 +61,7 @@ export default function TopicsPage() {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Mavzu o'chirildi" });
+    toast({ title: t("Mavzu o'chirildi") });
     refetch();
   };
 
@@ -71,11 +71,11 @@ export default function TopicsPage() {
     <DashboardLayout>
       <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Mavzular</h1>
-          <p className="text-sm text-muted-foreground">O'quv mavzularini yaratish va boshqarish</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("Mavzular")}</h1>
+          <p className="text-sm text-muted-foreground">{t("O'quv mavzularini yaratish va boshqarish")}</p>
         </div>
         <Button onClick={() => setShowCreate(!showCreate)}>
-          <Plus className="w-4 h-4 mr-1" /> Yangi mavzu
+          <Plus className="w-4 h-4 mr-1" /> {t("Yangi mavzu")}
         </Button>
       </div>
 
@@ -83,28 +83,28 @@ export default function TopicsPage() {
         {showCreate && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             <div className="rounded-xl border border-border bg-card p-5 shadow-card mb-6 space-y-4">
-              <h3 className="font-display font-semibold text-foreground">Yangi mavzu yaratish</h3>
+              <h3 className="font-display font-semibold text-foreground">{t("Yangi mavzu yaratish")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Mavzu nomi</Label>
-                  <Input placeholder="Svetofor qoidalari" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                  <Label className="text-xs">{t("Mavzu nomi")}</Label>
+                  <Input placeholder={t("Svetofor qoidalari")} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Rasm (ixtiyoriy)</Label>
+                  <Label className="text-xs">{t("Rasm (ixtiyoriy)")}</Label>
                   <ImageUpload value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="topics" maxWidth={800} quality={0.45} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Qisqa tavsif</Label>
-                <Input placeholder="Mavzu haqida qisqacha..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <Label className="text-xs">{t("Qisqa tavsif")}</Label>
+                <Input placeholder={t("Mavzu haqida qisqacha...")} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Mavzu matni (HTML yoki oddiy matn)</Label>
-                <Textarea placeholder="Mavzu kontenti..." value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} />
+                <Label className="text-xs">{t("Mavzu matni (HTML yoki oddiy matn)")}</Label>
+                <Textarea placeholder={t("Mavzu kontenti...")} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={creating}>{creating ? "Saqlanmoqda..." : "Saqlash"}</Button>
-                <Button variant="outline" onClick={() => setShowCreate(false)}>Bekor qilish</Button>
+                <Button onClick={handleCreate} disabled={creating}>{creating ? t("Saqlanmoqda...") : t("Saqlash")}</Button>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>{t("Bekor qilish")}</Button>
               </div>
             </div>
           </motion.div>
@@ -117,9 +117,8 @@ export default function TopicsPage() {
             {(topics || []).map((topic, i) => (
               <motion.div key={topic.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => setSelectedTopic(selectedTopic === topic.id ? null : topic.id)}
-                className={`rounded-xl border overflow-hidden cursor-pointer transition-all hover:shadow-elevated ${
-                  selectedTopic === topic.id ? "border-primary ring-1 ring-primary" : "border-border"
-                } bg-card shadow-card`}>
+                className={`rounded-xl border overflow-hidden cursor-pointer transition-all hover:shadow-elevated ${selectedTopic === topic.id ? "border-primary ring-1 ring-primary" : "border-border"
+                  } bg-card shadow-card`}>
                 {topic.image_url && <img src={topic.image_url} alt={topic.title} className="w-full h-32 object-cover" />}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -138,7 +137,7 @@ export default function TopicsPage() {
           {(!topics || topics.length === 0) && (
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Hali mavzular yo'q</p>
+              <p className="text-sm">{t("Hali mavzular yo'q")}</p>
             </div>
           )}
         </div>
@@ -160,11 +159,11 @@ export default function TopicsPage() {
                   {topic.image_url && <img src={topic.image_url} alt={topic.title} className="w-full max-h-64 object-cover rounded-lg mb-4" />}
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <div className="bg-muted/30 border-l-4 border-success rounded-r-lg p-4 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                      {topic.content || "Bu mavzu uchun hali kontent qo'shilmagan."}
+                      {t(topic.content || "Bu mavzu uchun hali kontent qo'shilmagan.")}
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedTopic(null)}>Yopish</Button>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedTopic(null)}>{t("Yopish")}</Button>
                   </div>
                 </div>
               );

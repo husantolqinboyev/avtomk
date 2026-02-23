@@ -9,7 +9,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function StudentResultsPage() {
-  const { user, userName } = useAuth();
+  const { user, userName, t } = useAuth();
 
   const { data: results } = useQuery({
     queryKey: ["student-results", user?.id],
@@ -34,22 +34,22 @@ export default function StudentResultsPage() {
     const doc = new jsPDF();
 
     doc.setFontSize(16);
-    doc.text("Test natijalari hisoboti", 14, 20);
+    doc.text(t("Test natijalari hisoboti"), 14, 20);
     doc.setFontSize(10);
-    doc.text(`O'quvchi: ${userName}`, 14, 28);
-    doc.text(`Sana: ${new Date().toLocaleDateString("uz")}`, 14, 34);
-    doc.text(`Jami testlar: ${results.length} | O'rtacha ball: ${avgScore}%`, 14, 40);
+    doc.text(`${t("O'quvchi")}: ${userName}`, 14, 28);
+    doc.text(`${t("Sana")}: ${new Date().toLocaleDateString("uz")}`, 14, 34);
+    doc.text(`${t("Jami testlar")}: ${results.length} | ${t("O'rtacha ball")}: ${avgScore}%`, 14, 40);
 
     const rows = results.map((r: any) => [
-      `#${r.tickets?.ticket_number}: ${r.tickets?.title}`,
+      `#${r.tickets?.ticket_number}: ${t(r.tickets?.title || "")}`,
       `${r.score}%`,
       `${r.correct_answers}/${r.total_questions}`,
-      `${Math.round((r.time_spent_seconds || 0) / 60)} min`,
+      `${Math.round((r.time_spent_seconds || 0) / 60)} ${t("min")}`,
       new Date(r.completed_at).toLocaleDateString("uz"),
     ]);
 
     autoTable(doc, {
-      head: [["Bilet", "Ball", "To'g'ri", "Vaqt", "Sana"]],
+      head: [[t("Bilet"), t("Ball"), t("To'g'ri"), t("Vaqt"), t("Sana")]],
       body: rows,
       startY: 46,
       styles: { fontSize: 9 },
@@ -63,12 +63,12 @@ export default function StudentResultsPage() {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Natijalar</h1>
-          <p className="text-sm text-muted-foreground">Barcha test natijalaringiz</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("Natijalar")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Barcha test natijalaringiz")}</p>
         </div>
         {results && results.length > 0 && (
           <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-            <Download className="w-4 h-4 mr-1" /> PDF yuklab olish
+            <Download className="w-4 h-4 mr-1" /> {t("PDF yuklab olish")}
           </Button>
         )}
       </div>
@@ -77,19 +77,19 @@ export default function StudentResultsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="rounded-xl border border-border bg-card p-4 shadow-card text-center">
           <p className="text-2xl font-bold text-foreground">{results?.length || 0}</p>
-          <p className="text-xs text-muted-foreground">Jami testlar</p>
+          <p className="text-xs text-muted-foreground">{t("Jami testlar")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-card text-center">
           <p className={`text-2xl font-bold ${avgScore >= 80 ? "text-success" : avgScore >= 60 ? "text-warning" : "text-destructive"}`}>{avgScore}%</p>
-          <p className="text-xs text-muted-foreground">O'rtacha ball</p>
+          <p className="text-xs text-muted-foreground">{t("O'rtacha ball")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-card text-center">
           <p className="text-2xl font-bold text-success">{results?.filter((r) => r.score >= 80).length || 0}</p>
-          <p className="text-xs text-muted-foreground">A'lo natijalar</p>
+          <p className="text-xs text-muted-foreground">{t("A'lo natijalar")}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 shadow-card text-center">
           <p className="text-2xl font-bold text-destructive">{results?.filter((r) => r.score < 60).length || 0}</p>
-          <p className="text-xs text-muted-foreground">Qoniqarsiz</p>
+          <p className="text-xs text-muted-foreground">{t("Qoniqarsiz")}</p>
         </div>
       </div>
 
@@ -105,17 +105,16 @@ export default function StudentResultsPage() {
               transition={{ delay: i * 0.03 }}
               className="rounded-xl border border-border bg-card p-4 shadow-card flex items-center gap-4"
             >
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-sm font-bold ${
-                r.score >= 80 ? "bg-success/10 text-success" : r.score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-              }`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-sm font-bold ${r.score >= 80 ? "bg-success/10 text-success" : r.score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                }`}>
                 {r.score}%
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  Bilet #{ticket?.ticket_number}: {ticket?.title}
+                  {t("Bilet")} #{ticket?.ticket_number}: {t(ticket?.title || "")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {r.correct_answers}/{r.total_questions} to'g'ri · {Math.round((r.time_spent_seconds || 0) / 60)} daqiqa
+                  {r.correct_answers}/{r.total_questions} {t("to'g'ri")} · {Math.round((r.time_spent_seconds || 0) / 60)} {t("daqiqa")}
                 </p>
               </div>
               <div className="text-xs text-muted-foreground hidden sm:block">
@@ -130,7 +129,7 @@ export default function StudentResultsPage() {
       {(!results || results.length === 0) && (
         <div className="text-center py-12 text-muted-foreground">
           <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">Hali test natijalaringiz yo'q</p>
+          <p className="text-sm">{t("Hali test natijalaringiz yo'q")}</p>
         </div>
       )}
     </DashboardLayout>

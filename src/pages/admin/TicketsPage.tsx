@@ -21,7 +21,7 @@ interface QuestionInput {
 }
 
 export default function TicketsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
@@ -139,7 +139,7 @@ export default function TicketsPage() {
 
   const deleteQuestion = async (qId: string) => {
     await supabase.from("questions").delete().eq("id", qId);
-    toast({ title: "Savol o'chirildi" });
+    toast({ title: t("Savol o'chirildi") });
     refetchQuestions();
   };
 
@@ -156,8 +156,8 @@ export default function TicketsPage() {
       correct_answer: editQ.correct_answer,
       explanation: editQ.explanation || null,
     }).eq("id", qId);
-    if (error) { toast({ title: "Xatolik", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Savol yangilandi" }); setEditingQuestion(null); refetchQuestions();
+    if (error) { toast({ title: t("Xatolik"), description: error.message, variant: "destructive" }); return; }
+    toast({ title: t("Savol yangilandi") }); setEditingQuestion(null); refetchQuestions();
   };
 
   const [addingToTicket, setAddingToTicket] = useState<string | null>(null);
@@ -171,8 +171,8 @@ export default function TicketsPage() {
       options: newQ.options.filter((o) => o.trim()), correct_answer: newQ.correct_answer,
       explanation: newQ.explanation || null, order_num: tQuestions.length + 1,
     });
-    if (error) { toast({ title: "Xatolik", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Savol qo'shildi" }); setAddingToTicket(null);
+    if (error) { toast({ title: t("Xatolik"), description: error.message, variant: "destructive" }); return; }
+    toast({ title: t("Savol qo'shildi") }); setAddingToTicket(null);
     setNewQ({ question_text: "", image_url: "", options: ["", "", "", ""], correct_answer: "", explanation: "" });
     refetchQuestions();
   };
@@ -181,11 +181,11 @@ export default function TicketsPage() {
     <DashboardLayout>
       <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Biletlar</h1>
-          <p className="text-sm text-muted-foreground">Test biletlarini yaratish va boshqarish</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("Biletlar")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Test biletlarini yaratish va boshqarish")}</p>
         </div>
         <Button onClick={() => setShowCreate(!showCreate)}>
-          <Plus className="w-4 h-4 mr-1" /> Yangi bilet
+          <Plus className="w-4 h-4 mr-1" /> {t("Yangi bilet")}
         </Button>
       </div>
 
@@ -194,61 +194,61 @@ export default function TicketsPage() {
         {showCreate && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             <div className="rounded-xl border border-border bg-card p-5 shadow-card mb-6 space-y-4">
-              <h3 className="font-display font-semibold text-foreground">Yangi bilet yaratish</h3>
+              <h3 className="font-display font-semibold text-foreground">{t("Yangi bilet yaratish")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Bilet raqami</Label>
+                  <Label className="text-xs">{t("Bilet raqami")}</Label>
                   <Input type="number" value={ticketNumber} onChange={(e) => setTicketNumber(Number(e.target.value))} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Bilet nomi</Label>
-                  <Input placeholder="Bilet #1 — Yo'l belgilari" value={ticketTitle} onChange={(e) => setTicketTitle(e.target.value)} />
+                  <Label className="text-xs">{t("Bilet nomi")}</Label>
+                  <Input placeholder={t("Bilet #1 — Yo'l belgilari")} value={ticketTitle} onChange={(e) => setTicketTitle(e.target.value)} />
                 </div>
               </div>
 
               {/* JSON Import */}
               <div className="border border-border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Upload className="w-4 h-4 text-primary" /> JSON orqali import
+                  <Upload className="w-4 h-4 text-primary" /> {t("JSON orqali import")}
                 </div>
                 <Textarea placeholder='[{"question": "...", "options": [...], "correct_answer": "...", "explanation": "..."}]' value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} rows={4} className="font-mono text-xs" />
-                <Button variant="outline" size="sm" onClick={handleJsonImport} disabled={!jsonInput.trim()}>Import qilish</Button>
+                <Button variant="outline" size="sm" onClick={handleJsonImport} disabled={!jsonInput.trim()}>{t("Import qilish")}</Button>
               </div>
 
               {/* Questions */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Savollar ({questions.length})</span>
-                  <Button variant="outline" size="sm" onClick={addQuestion}><Plus className="w-3 h-3 mr-1" /> Savol</Button>
+                  <span className="text-sm font-medium text-foreground">{t("Savollar")} ({questions.length})</span>
+                  <Button variant="outline" size="sm" onClick={addQuestion}><Plus className="w-3 h-3 mr-1" /> {t("Savol")}</Button>
                 </div>
                 {questions.map((q, qi) => (
                   <div key={qi} className="border border-border rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">Savol #{qi + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{t("Savol")} #{qi + 1}</span>
                       <Button variant="ghost" size="sm" onClick={() => removeQuestion(qi)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                     </div>
-                    <Input placeholder="Savol matni..." value={q.question_text} onChange={(e) => updateQuestion(qi, "question_text", e.target.value)} />
+                    <Input placeholder={t("Savol matni...")} value={q.question_text} onChange={(e) => updateQuestion(qi, "question_text", e.target.value)} />
                     <ImageUpload value={q.image_url} onChange={(url) => updateQuestion(qi, "image_url", url)} folder="questions" maxWidth={600} quality={0.4} />
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Variantlar</Label>
+                      <Label className="text-xs">{t("Variantlar")}</Label>
                       {q.options.map((opt, oi) => (
                         <div key={oi} className="flex items-center gap-2">
                           <input type="radio" name={`correct-${qi}`} checked={q.correct_answer === opt && opt !== ""} onChange={() => updateQuestion(qi, "correct_answer", opt)} className="accent-primary" />
-                          <Input placeholder={`Variant ${oi + 1}`} value={opt} onChange={(e) => updateOption(qi, oi, e.target.value)} className="text-xs" />
+                          <Input placeholder={`${t("Variant")} ${oi + 1}`} value={opt} onChange={(e) => updateOption(qi, oi, e.target.value)} className="text-xs" />
                         </div>
                       ))}
-                      <Button variant="ghost" size="sm" onClick={() => addOption(qi)}><Plus className="w-3 h-3 mr-1" /> Variant</Button>
+                      <Button variant="ghost" size="sm" onClick={() => addOption(qi)}><Plus className="w-3 h-3 mr-1" /> {t("Variant")}</Button>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Izoh</Label>
-                      <Textarea placeholder="Javob izohi..." value={q.explanation} onChange={(e) => updateQuestion(qi, "explanation", e.target.value)} rows={2} className="text-xs" />
+                      <Label className="text-xs">{t("Izoh")}</Label>
+                      <Textarea placeholder={t("Javob izohi...")} value={q.explanation} onChange={(e) => updateQuestion(qi, "explanation", e.target.value)} rows={2} className="text-xs" />
                     </div>
                   </div>
                 ))}
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={creating}>{creating ? "Saqlanmoqda..." : "Saqlash"}</Button>
-                <Button variant="outline" onClick={() => setShowCreate(false)}>Bekor qilish</Button>
+                <Button onClick={handleCreate} disabled={creating}>{creating ? t("Saqlanmoqda...") : t("Saqlash")}</Button>
+                <Button variant="outline" onClick={() => setShowCreate(false)}>{t("Bekor qilish")}</Button>
               </div>
             </div>
           </motion.div>
@@ -278,8 +278,8 @@ export default function TicketsPage() {
                     </div>
                   ) : (
                     <div>
-                      <p className="font-medium text-foreground text-sm">Bilet #{ticket.ticket_number}: {ticket.title}</p>
-                      <p className="text-xs text-muted-foreground">{tQuestions.length} ta savol</p>
+                      <p className="font-medium text-foreground text-sm">{t("Bilet")} #{ticket.ticket_number}: {t(ticket.title)}</p>
+                      <p className="text-xs text-muted-foreground">{tQuestions.length} {t("ta savol")}</p>
                     </div>
                   )}
                 </div>
@@ -297,7 +297,7 @@ export default function TicketsPage() {
                   <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                     <div className="border-t border-border p-4 space-y-3">
                       {tQuestions.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">Savollar yo'q</p>
+                        <p className="text-sm text-muted-foreground text-center py-4">{t("Savollar yo'q")}</p>
                       ) : (
                         tQuestions.map((q, i) => (
                           <div key={q.id} className="border border-border/50 rounded-lg p-3 space-y-2">
@@ -325,7 +325,7 @@ export default function TicketsPage() {
                             ) : (
                               <>
                                 <div className="flex items-start justify-between">
-                                  <p className="text-sm font-medium text-foreground flex-1">{i + 1}. {q.question_text}</p>
+                                  <p className="text-sm font-medium text-foreground flex-1">{i + 1}. {t(q.question_text)}</p>
                                   <div className="flex items-center gap-1">
                                     <Button variant="ghost" size="sm" onClick={() => startEditQuestion(q)}><Pencil className="w-3 h-3 text-primary" /></Button>
                                     <Button variant="ghost" size="sm" onClick={() => deleteQuestion(q.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
@@ -335,7 +335,7 @@ export default function TicketsPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                   {(q.options as string[]).map((opt: string, oi: number) => (
                                     <div key={oi} className={`text-xs px-2 py-1.5 rounded ${opt === q.correct_answer ? "bg-success/10 text-success font-medium" : "bg-muted/50 text-muted-foreground"}`}>
-                                      {String.fromCharCode(65 + oi)}. {opt}
+                                      {String.fromCharCode(65 + oi)}. {t(opt)}
                                     </div>
                                   ))}
                                 </div>
@@ -349,28 +349,28 @@ export default function TicketsPage() {
                       {/* Add new question to this ticket */}
                       {addingToTicket === ticket.id ? (
                         <div className="border border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
-                          <span className="text-xs font-semibold text-primary">Yangi savol</span>
-                          <Input value={newQ.question_text} onChange={(e) => setNewQ({ ...newQ, question_text: e.target.value })} placeholder="Savol matni" />
+                          <span className="text-xs font-semibold text-primary">{t("Yangi savol")}</span>
+                          <Input value={newQ.question_text} onChange={(e) => setNewQ({ ...newQ, question_text: e.target.value })} placeholder={t("Savol matni")} />
                           <ImageUpload value={newQ.image_url} onChange={(url) => setNewQ({ ...newQ, image_url: url })} folder="questions" maxWidth={600} quality={0.4} />
                           <div className="space-y-1.5">
-                            <Label className="text-xs">Variantlar</Label>
+                            <Label className="text-xs">{t("Variantlar")}</Label>
                             {newQ.options.map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-2">
                                 <input type="radio" name="new-correct" checked={newQ.correct_answer === opt && opt !== ""} onChange={() => setNewQ({ ...newQ, correct_answer: opt })} className="accent-primary" />
-                                <Input value={opt} onChange={(e) => { const opts = [...newQ.options]; opts[oi] = e.target.value; setNewQ({ ...newQ, options: opts }); }} className="text-xs" placeholder={`Variant ${oi + 1}`} />
+                                <Input value={opt} onChange={(e) => { const opts = [...newQ.options]; opts[oi] = e.target.value; setNewQ({ ...newQ, options: opts }); }} className="text-xs" placeholder={`${t("Variant")} ${oi + 1}`} />
                               </div>
                             ))}
-                            <Button variant="ghost" size="sm" onClick={() => setNewQ({ ...newQ, options: [...newQ.options, ""] })}><Plus className="w-3 h-3 mr-1" /> Variant</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setNewQ({ ...newQ, options: [...newQ.options, ""] })}><Plus className="w-3 h-3 mr-1" /> {t("Variant")}</Button>
                           </div>
-                          <Textarea value={newQ.explanation} onChange={(e) => setNewQ({ ...newQ, explanation: e.target.value })} placeholder="Izoh" rows={2} className="text-xs" />
+                          <Textarea value={newQ.explanation} onChange={(e) => setNewQ({ ...newQ, explanation: e.target.value })} placeholder={t("Izoh")} rows={2} className="text-xs" />
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => saveNewQuestion(ticket.id)}><Save className="w-3 h-3 mr-1" /> Saqlash</Button>
-                            <Button size="sm" variant="outline" onClick={() => setAddingToTicket(null)}>Bekor</Button>
+                            <Button size="sm" onClick={() => saveNewQuestion(ticket.id)}><Save className="w-3 h-3 mr-1" /> {t("Saqlash")}</Button>
+                            <Button size="sm" variant="outline" onClick={() => setAddingToTicket(null)}>{t("Bekor")}</Button>
                           </div>
                         </div>
                       ) : (
                         <Button variant="outline" size="sm" className="w-full" onClick={() => setAddingToTicket(ticket.id)}>
-                          <Plus className="w-3 h-3 mr-1" /> Yangi savol qo'shish
+                          <Plus className="w-3 h-3 mr-1" /> {t("Yangi savol qo'shish")}
                         </Button>
                       )}
                     </div>
@@ -384,7 +384,7 @@ export default function TicketsPage() {
         {(!tickets || tickets.length === 0) && (
           <div className="text-center py-12 text-muted-foreground">
             <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Hali biletlar yo'q</p>
+            <p className="text-sm">{t("Hali biletlar yo'q")}</p>
           </div>
         )}
       </div>

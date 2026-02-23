@@ -20,11 +20,12 @@ interface ErrorQuestion {
 }
 
 export default function StudentErrorsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const [errors, setErrors] = useState<ErrorQuestion[]>([]);
   const [practiceIdx, setPracticeIdx] = useState<number | null>(null);
   const [practiceAnswer, setPracticeAnswer] = useState<string | null>(null);
   const [practiceRevealed, setPracticeRevealed] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
   const OPTION_LABELS = ["F1", "F2", "F3", "F4"];
 
   const { data: results } = useQuery({
@@ -56,7 +57,7 @@ export default function StudentErrorsPage() {
           try {
             const cached = await getCachedQuestions(result.ticket_id);
             question = cached.find((q: any) => q.id === wa.question_id);
-          } catch {}
+          } catch { }
 
           if (!question) {
             const { data } = await supabase
@@ -97,6 +98,7 @@ export default function StudentErrorsPage() {
     setPracticeIdx(null);
     setPracticeAnswer(null);
     setPracticeRevealed(false);
+    setShowExplanation(false);
   };
 
   if (practiceIdx !== null && errors[practiceIdx]) {
@@ -107,13 +109,13 @@ export default function StudentErrorsPage() {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto">
           <div className="mb-4">
-            <Button variant="ghost" size="sm" onClick={() => { setPracticeIdx(null); setPracticeAnswer(null); setPracticeRevealed(false); }}>
-              ← Ortga
+            <Button variant="ghost" size="sm" onClick={() => { setPracticeIdx(null); setPracticeAnswer(null); setPracticeRevealed(false); setShowExplanation(false); }}>
+              ← {t("Ortga")}
             </Button>
           </div>
           <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-            <p className="text-xs text-muted-foreground mb-2">{eq.ticket_title}</p>
-            <p className="text-base font-medium text-foreground mb-4">{eq.question_text}</p>
+            <p className="text-xs text-muted-foreground mb-2">{t(eq.ticket_title)}</p>
+            <p className="text-base font-medium text-foreground mb-4">{t(eq.question_text)}</p>
             {eq.image_url && <img src={eq.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" />}
             <div className="space-y-2">
               {eq.options.map((opt, oi) => {
@@ -128,7 +130,7 @@ export default function StudentErrorsPage() {
                 return (
                   <button key={oi} onClick={() => handlePracticeAnswer(opt)} disabled={practiceRevealed}
                     className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${cls}`}>
-                    <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi+1}`}.</span>{opt}
+                    <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
                   </button>
                 );
               })}
@@ -137,26 +139,37 @@ export default function StudentErrorsPage() {
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 rounded-lg border border-border bg-muted/30">
                 {isCorrect ? (
                   <div className="flex items-center gap-2 text-success">
-                    <CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">To'g'ri! Xato ro'yxatdan olib tashlandi.</span>
+                    <CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">{t("To'g'ri! Xato ro'yxatdan olib tashlandi.")}</span>
                   </div>
                 ) : (
                   <div>
                     <div className="flex items-center gap-2 text-destructive mb-1">
-                      <XCircle className="w-4 h-4" /><span className="text-sm font-medium">Noto'g'ri</span>
+                      <XCircle className="w-4 h-4" /><span className="text-sm font-medium">{t("Noto'g'ri")}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">To'g'ri javob: <span className="text-success font-medium">{eq.correct_answer}</span></p>
+                    <p className="text-xs text-muted-foreground">{t("To'g'ri javob:")} <span className="text-success font-medium">{t(eq.correct_answer)}</span></p>
                   </div>
                 )}
-                {eq.explanation && <p className="text-xs text-muted-foreground mt-1 italic">{eq.explanation}</p>}
+
+                {eq.explanation && (
+                  <div className="mt-2">
+                    {!showExplanation ? (
+                      <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => setShowExplanation(true)}>
+                        {t("Izoh o'qish")}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic border-t border-border pt-2 mt-2">{t(eq.explanation)}</p>
+                    )}
+                  </div>
+                )}
                 <div className="mt-3 flex gap-2">
                   {isCorrect && (
                     <Button size="sm" variant="outline" onClick={() => handleCorrect(eq.question_id)}>
-                      <CheckCircle className="w-4 h-4 mr-1" /> Tayyor
+                      <CheckCircle className="w-4 h-4 mr-1" /> {t("Tayyor")}
                     </Button>
                   )}
                   {!isCorrect && (
-                    <Button size="sm" variant="outline" onClick={() => { setPracticeAnswer(null); setPracticeRevealed(false); }}>
-                      Qayta urinish
+                    <Button size="sm" variant="outline" onClick={() => { setPracticeAnswer(null); setPracticeRevealed(false); setShowExplanation(false); }}>
+                      {t("Qayta urinish")}
                     </Button>
                   )}
                 </div>
@@ -171,13 +184,13 @@ export default function StudentErrorsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">Xatolar</h1>
-        <p className="text-sm text-muted-foreground">Noto'g'ri javob bergan savollaringiz. To'g'ri javob bering va ular yo'qoladi.</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("Xatolar")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Noto'g'ri javob bergan savollaringiz. To'g'ri javob bering va ular yo'qoladi.")}</p>
       </div>
       {errors.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <CheckCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">Xatolar yo'q! Ajoyib natija!</p>
+          <p className="text-sm">{t("Xatolar yo'q! Ajoyib natija!")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -189,8 +202,8 @@ export default function StudentErrorsPage() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground line-clamp-2">{eq.question_text}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{eq.ticket_title}</p>
+                    <p className="text-sm font-medium text-foreground line-clamp-2">{t(eq.question_text)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t(eq.ticket_title)}</p>
                   </div>
                 </div>
               </motion.div>

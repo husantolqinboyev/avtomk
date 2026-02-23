@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function StudentNotificationsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: notifications, refetch } = useQuery({
@@ -54,12 +54,12 @@ export default function StudentNotificationsPage() {
     <DashboardLayout>
       <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Bildirishnomalar</h1>
-          <p className="text-sm text-muted-foreground">{unreadCount} ta o'qilmagan</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t("Bildirishnomalar")}</h1>
+          <p className="text-sm text-muted-foreground">{unreadCount} {t("ta o'qilmagan")}</p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={markAllRead}>
-            <CheckCheck className="w-4 h-4 mr-1" /> Barchasini o'qilgan deb belgilash
+            <CheckCheck className="w-4 h-4 mr-1" /> {t("Barchasini o'qilgan deb belgilash")}
           </Button>
         )}
       </div>
@@ -67,7 +67,7 @@ export default function StudentNotificationsPage() {
       {(!notifications || notifications.length === 0) ? (
         <div className="text-center py-12 text-muted-foreground">
           <Bell className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">Bildirishnomalar yo'q</p>
+          <p className="text-sm">{t("Bildirishnomalar yo'q")}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -80,8 +80,8 @@ export default function StudentNotificationsPage() {
                     <Bell className={`w-4 h-4 ${n.read ? "text-muted-foreground" : "text-primary"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${n.read ? "text-muted-foreground" : "text-foreground"}`}>{n.title}</p>
-                    {n.message && <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>}
+                    <p className={`text-sm font-medium ${n.read ? "text-muted-foreground" : "text-foreground"}`}>{t(n.title)}</p>
+                    {n.message && <p className="text-xs text-muted-foreground mt-0.5">{t(n.message)}</p>}
                     <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString("uz")}</p>
                   </div>
                   {!n.read && (

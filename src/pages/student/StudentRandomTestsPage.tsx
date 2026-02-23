@@ -24,13 +24,14 @@ const OPTION_LABELS = ["F1", "F2", "F3", "F4"];
 const TEST_DURATION_SECONDS = 30 * 60;
 
 export default function StudentRandomTestsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const { toast } = useToast();
   const [testSize, setTestSize] = useState<number | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [showExplanation, setShowExplanation] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
@@ -100,7 +101,7 @@ export default function StudentRandomTestsPage() {
       setStartTime(Date.now());
       setTimeLeft(TEST_DURATION_SECONDS);
     } catch (e) {
-      toast({ title: "Xatolik", variant: "destructive" });
+      toast({ title: t("Xatolik"), variant: "destructive" });
     }
     setLoading(false);
   };
@@ -116,10 +117,11 @@ export default function StudentRandomTestsPage() {
     nextTimeoutRef.current = setTimeout(() => {
       if (currentQ < questions.length - 1) {
         setCurrentQ(prev => prev + 1);
+        setShowExplanation(false);
       } else {
         handleFinish();
       }
-    }, 3000);
+    }, 1500);
   };
 
   const handleFinish = useCallback(async () => {
@@ -127,8 +129,8 @@ export default function StudentRandomTestsPage() {
     const correct = questions.filter((q, i) => answers[i] === q.correct_answer).length;
     const score = Math.round((correct / questions.length) * 100);
     setShowResults(true);
-    toast({ title: `Test yakunlandi! Natija: ${score}%` });
-  }, [questions, answers, showResults]);
+    toast({ title: t(`Test yakunlandi! Natija: ${score}%`) });
+  }, [questions, answers, showResults, t]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -142,6 +144,7 @@ export default function StudentRandomTestsPage() {
     setCurrentQ(0);
     setAnswers({});
     setRevealed({});
+    setShowExplanation(false);
     setShowResults(false);
   };
 
@@ -170,7 +173,7 @@ export default function StudentRandomTestsPage() {
 
           {q && (
             <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <p className="text-base font-medium text-foreground mb-4">{q.question_text}</p>
+              <p className="text-base font-medium text-foreground mb-4">{t(q.question_text)}</p>
               {q.image_url && <img src={q.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" draggable={false} />}
               <div className="space-y-2">
                 {q.options.map((opt: string, oi: number) => {
@@ -185,7 +188,7 @@ export default function StudentRandomTestsPage() {
                   return (
                     <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{opt}
+                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
                     </button>
                   );
                 })}
@@ -194,13 +197,27 @@ export default function StudentRandomTestsPage() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 rounded-lg border border-border bg-muted/30">
                   <div className="flex items-center gap-2 mb-1">
                     {isCorrect ? (
-                      <><CheckCircle className="w-4 h-4 text-success" /><span className="text-sm font-medium text-success">To'g'ri!</span></>
+                      <><CheckCircle className="w-4 h-4 text-success" /><span className="text-sm font-medium text-success">{t("To'g'ri!")}</span></>
                     ) : (
-                      <><XCircle className="w-4 h-4 text-destructive" /><span className="text-sm font-medium text-destructive">Noto'g'ri</span></>
+                      <><XCircle className="w-4 h-4 text-destructive" /><span className="text-sm font-medium text-destructive">{t("Noto'g'ri")}</span></>
                     )}
                   </div>
-                  {!isCorrect && <p className="text-xs text-muted-foreground">To'g'ri javob: <span className="text-success font-medium">{q.correct_answer}</span></p>}
-                  {q.explanation && <p className="text-xs text-muted-foreground mt-1 italic">{q.explanation}</p>}
+                  {!isCorrect && <p className="text-xs text-muted-foreground">{t("To'g'ri javob:")} <span className="text-success font-medium">{t(q.correct_answer)}</span></p>}
+
+                  {q.explanation && (
+                    <div className="mt-2">
+                      {!showExplanation ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => {
+                          if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+                          setShowExplanation(true);
+                        }}>
+                          {t("Izoh o'qish")}
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic border-t border-border pt-2 mt-2">{t(q.explanation)}</p>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -208,10 +225,10 @@ export default function StudentRandomTestsPage() {
 
           <div className="flex justify-end mt-4">
             {isRevealed && currentQ < totalQ - 1 && (
-              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>{t("Keyingi")} <ArrowRight className="w-4 h-4 ml-1" /></Button>
             )}
             {isRevealed && currentQ === totalQ - 1 && (
-              <Button size="sm" onClick={handleFinish}>Yakunlash <CheckCircle className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={handleFinish}>{t("Yakunlash")} <CheckCircle className="w-4 h-4 ml-1" /></Button>
             )}
           </div>
 
@@ -244,14 +261,14 @@ export default function StudentRandomTestsPage() {
             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
               }`}>{score}%</div>
             <h2 className="text-xl font-display font-bold text-foreground">
-              {score >= 80 ? "Ajoyib!" : score >= 60 ? "Yaxshi" : "Ko'proq mashq qiling"}
+              {score >= 80 ? t("Ajoyib!") : score >= 60 ? t("Yaxshi") : t("Ko'proq mashq qiling")}
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">{correct} / {questions.length} ta to'g'ri javob</p>
+            <p className="text-sm text-muted-foreground mt-1">{correct} / {questions.length} {t("ta to'g'ri javob")}</p>
             <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
               <Timer className="w-3 h-3" /> {formatTime(timeSpent)}
             </p>
           </div>
-          <div className="text-center"><Button onClick={resetTest}>Ortga qaytish</Button></div>
+          <div className="text-center"><Button onClick={resetTest}>{t("Ortga qaytish")}</Button></div>
         </div>
       </DashboardLayout>
     );
@@ -261,8 +278,8 @@ export default function StudentRandomTestsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">Tasodifiy testlar</h1>
-        <p className="text-sm text-muted-foreground">Barcha biletlardan aralash savollar</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("Tasodifiy testlar")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Barcha biletlardan aralash savollar")}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -271,10 +288,10 @@ export default function StudentRandomTestsPage() {
           <div className="w-14 h-14 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-3">
             <Shuffle className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="font-display font-bold text-foreground text-lg">20 ta savol</h3>
-          <p className="text-xs text-muted-foreground mt-1">Aralash biletlardan</p>
+          <h3 className="font-display font-bold text-foreground text-lg">{t("20 ta savol")}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{t("Aralash biletlardan")}</p>
           <Button size="sm" className="mt-3" disabled={loading}>
-            <Play className="w-4 h-4 mr-1" /> Boshlash
+            <Play className="w-4 h-4 mr-1" /> {t("Boshlash")}
           </Button>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -283,10 +300,10 @@ export default function StudentRandomTestsPage() {
           <div className="w-14 h-14 mx-auto rounded-xl bg-accent/50 flex items-center justify-center mb-3">
             <Shuffle className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="font-display font-bold text-foreground text-lg">50 ta savol</h3>
-          <p className="text-xs text-muted-foreground mt-1">Aralash biletlardan</p>
+          <h3 className="font-display font-bold text-foreground text-lg">{t("50 ta savol")}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{t("Aralash biletlardan")}</p>
           <Button size="sm" className="mt-3" disabled={loading}>
-            <Play className="w-4 h-4 mr-1" /> Boshlash
+            <Play className="w-4 h-4 mr-1" /> {t("Boshlash")}
           </Button>
         </motion.div>
       </div>

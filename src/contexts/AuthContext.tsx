@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { latinToCyrillic } from "@/lib/transliterate";
 import type { User } from "@supabase/supabase-js";
 
 export type UserRole = "admin" | "teacher" | "student";
@@ -14,6 +15,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   theme: "light" | "dark";
   toggleTheme: () => void;
+  script: "latin" | "cyrillic";
+  toggleScript: () => void;
+  t: (text: string) => string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,6 +36,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("theme") as "light" | "dark") || "dark"
+  );
+  const [script, setScript] = useState<"latin" | "cyrillic">(
+    () => (localStorage.getItem("script") as "latin" | "cyrillic") || "latin"
   );
 
   if (typeof document !== "undefined") {
@@ -129,12 +136,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("theme", next);
   };
 
+  const toggleScript = () => {
+    const next = script === "latin" ? "cyrillic" : "latin";
+    setScript(next);
+    localStorage.setItem("script", next);
+  };
+
+  const t = useCallback((text: string) => {
+    if (script === "latin") return text;
+    return latinToCyrillic(text);
+  }, [script]);
+
   // isAuthenticated: user mavjud VA rol yuklanib bo'lgan bo'lsa true
   // loading=false bo'lganda role tekshiramiz (role null bo'lsa foydalanuvchi tizimda yo'q)
   const isAuthenticated = !!user && !!role;
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, role, userName, user, loading, login, logout, theme, toggleTheme }}>
+    <AuthContext.Provider value={{ isAuthenticated, role, userName, user, loading, login, logout, theme, toggleTheme, script, toggleScript, t }}>
       {children}
     </AuthContext.Provider>
   );

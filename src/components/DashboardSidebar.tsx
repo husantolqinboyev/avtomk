@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, FileText, BookOpen, LogOut,
   ChevronLeft, ChevronRight, Sun, Moon, GraduationCap, Car, BarChart3,
-  Bell, ClipboardList, Menu, X, Shuffle, Send, AlertTriangle
+  Bell, ClipboardList, Menu, X, Shuffle, Send, AlertTriangle, Languages
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,7 +41,7 @@ const studentLinks = [
 ];
 
 export default function DashboardSidebar() {
-  const { role, userName, logout, theme, toggleTheme, user } = useAuth();
+  const { role, userName, logout, theme, toggleTheme, script, toggleScript, t, user } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
@@ -71,7 +71,7 @@ export default function DashboardSidebar() {
   }, [user]);
 
   const links = role === "admin" ? adminLinks : role === "teacher" ? teacherLinks : studentLinks;
-  const roleLabel = role === "admin" ? "Administrator" : role === "teacher" ? "O'qituvchi" : "O'quvchi";
+  const roleLabel = role === "admin" ? t("Administrator") : role === "teacher" ? t("O'qituvchi") : t("O'quvchi");
   const RoleIcon = role === "admin" ? Car : role === "teacher" ? GraduationCap : Users;
 
   const handleNavClick = () => {
@@ -88,7 +88,7 @@ export default function DashboardSidebar() {
           {(!collapsed || isMobile) && (
             <div className="overflow-hidden">
               <h1 className="font-display font-bold text-foreground text-sm leading-tight">AvtoTa'lim</h1>
-              <p className="text-[10px] text-muted-foreground">Aqlli ta'lim tizimi</p>
+              <p className="text-[10px] text-muted-foreground">{t("Aqlli ta'lim tizimi")}</p>
             </div>
           )}
         </div>
@@ -122,15 +122,14 @@ export default function DashboardSidebar() {
               key={link.to}
               to={link.to}
               onClick={handleNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group ${isActive
                   ? "bg-primary text-primary-foreground shadow-card"
                   : "text-sidebar-foreground hover:bg-sidebar-accent"
-              }`}
+                }`}
             >
               <link.icon className={`w-4 h-4 shrink-0 ${isActive ? "" : "text-muted-foreground group-hover:text-foreground"}`} />
               {(!collapsed || isMobile) && (
-                <span className="truncate flex-1">{link.label}</span>
+                <span className="truncate flex-1">{t(link.label)}</span>
               )}
               {isNotif && unreadCount > 0 && (!collapsed || isMobile) && (
                 <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
@@ -151,14 +150,21 @@ export default function DashboardSidebar() {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
         >
           {theme === "dark" ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
-          {(!collapsed || isMobile) && <span>{theme === "dark" ? "Yorug' rejim" : "Qorong'u rejim"}</span>}
+          {(!collapsed || isMobile) && <span>{theme === "dark" ? t("Yorug' rejim") : t("Qorong'u rejim")}</span>}
+        </button>
+        <button
+          onClick={toggleScript}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        >
+          <Languages className="w-4 h-4 shrink-0" />
+          {(!collapsed || isMobile) && <span>{script === "latin" ? "Lotincha" : "Кириллча"}</span>}
         </button>
         <button
           onClick={logout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="w-4 h-4 shrink-0" />
-          {(!collapsed || isMobile) && <span>Chiqish</span>}
+          {(!collapsed || isMobile) && <span>{t("Chiqish")}</span>}
         </button>
       </div>
     </div>

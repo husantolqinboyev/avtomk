@@ -23,12 +23,13 @@ const TEST_DURATION_SECONDS = 30 * 60;
 const OPTION_LABELS = ["F1", "F2", "F3", "F4"];
 
 export default function StudentTestsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const { toast } = useToast();
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [showExplanation, setShowExplanation] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
@@ -122,7 +123,7 @@ export default function StudentTestsPage() {
       } else {
         handleFinish();
       }
-    }, 3000);
+    }, 1500);
   };
 
   const handleFinish = useCallback(async () => {
@@ -145,7 +146,7 @@ export default function StudentTestsPage() {
 
     setShowResults(true);
     refetchResults();
-    toast({ title: `Test yakunlandi! Natija: ${score}%` });
+    toast({ title: t(`Test yakunlandi! Natija: ${score}%`) });
   }, [questions, activeTicketId, user, answers, startTime, showResults]);
 
   const resetTest = () => {
@@ -178,6 +179,7 @@ export default function StudentTestsPage() {
     if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
     if (currentQ < totalQ - 1) {
       setCurrentQ(currentQ + 1);
+      setShowExplanation(false);
     }
   };
 
@@ -204,7 +206,7 @@ export default function StudentTestsPage() {
 
           {q && (
             <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <p className="text-base font-medium text-foreground mb-4">{q.question_text}</p>
+              <p className="text-base font-medium text-foreground mb-4">{t(q.question_text)}</p>
               {q.image_url && <img src={q.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" draggable={false} />}
               <div className="space-y-2">
                 {q.options.map((opt, oi) => {
@@ -225,7 +227,7 @@ export default function StudentTestsPage() {
                   return (
                     <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{opt}
+                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
                     </button>
                   );
                 })}
@@ -236,13 +238,27 @@ export default function StudentTestsPage() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 rounded-lg border border-border bg-muted/30">
                   <div className="flex items-center gap-2 mb-1">
                     {isCorrect ? (
-                      <><CheckCircle className="w-4 h-4 text-success" /><span className="text-sm font-medium text-success">To'g'ri!</span></>
+                      <><CheckCircle className="w-4 h-4 text-success" /><span className="text-sm font-medium text-success">{t("To'g'ri!")}</span></>
                     ) : (
-                      <><XCircle className="w-4 h-4 text-destructive" /><span className="text-sm font-medium text-destructive">Noto'g'ri</span></>
+                      <><XCircle className="w-4 h-4 text-destructive" /><span className="text-sm font-medium text-destructive">{t("Noto'g'ri")}</span></>
                     )}
                   </div>
-                  {!isCorrect && <p className="text-xs text-muted-foreground">To'g'ri javob: <span className="text-success font-medium">{q.correct_answer}</span></p>}
-                  {q.explanation && <p className="text-xs text-muted-foreground mt-1 italic">{q.explanation}</p>}
+                  {!isCorrect && <p className="text-xs text-muted-foreground">{t("To'g'ri javob:")} <span className="text-success font-medium">{t(q.correct_answer)}</span></p>}
+
+                  {q.explanation && (
+                    <div className="mt-2">
+                      {!showExplanation ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => {
+                          if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+                          setShowExplanation(true);
+                        }}>
+                          {t("Izoh o'qish")}
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic border-t border-border pt-2 mt-2">{t(q.explanation)}</p>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -250,10 +266,10 @@ export default function StudentTestsPage() {
 
           <div className="flex justify-end mt-4">
             {isRevealed && currentQ < totalQ - 1 && (
-              <Button size="sm" onClick={goNext}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={goNext}>{t("Keyingi")} <ArrowRight className="w-4 h-4 ml-1" /></Button>
             )}
             {isRevealed && currentQ === totalQ - 1 && (
-              <Button size="sm" onClick={handleFinish}>Yakunlash <CheckCircle className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={handleFinish}>{t("Yakunlash")} <CheckCircle className="w-4 h-4 ml-1" /></Button>
             )}
           </div>
 
@@ -262,9 +278,9 @@ export default function StudentTestsPage() {
             {questions.map((_, i) => (
               <button key={i} onClick={() => setCurrentQ(i)}
                 className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${i === currentQ ? "bg-primary text-primary-foreground" :
-                    revealed[i] && answers[i] === questions[i].correct_answer ? "bg-success/20 text-success border border-success/30" :
-                      revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
-                        "bg-muted text-muted-foreground hover:bg-muted/80"
+                  revealed[i] && answers[i] === questions[i].correct_answer ? "bg-success/20 text-success border border-success/30" :
+                    revealed[i] ? "bg-destructive/20 text-destructive border border-destructive/30" :
+                      "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}>
                 {i + 1}
               </button>
@@ -287,14 +303,14 @@ export default function StudentTestsPage() {
             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-3 ${score >= 80 ? "bg-success/10 text-success" : score >= 60 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
               }`}>{score}%</div>
             <h2 className="text-xl font-display font-bold text-foreground">
-              {score >= 80 ? "Ajoyib!" : score >= 60 ? "Yaxshi" : "Ko'proq mashq qiling"}
+              {score >= 80 ? t("Ajoyib!") : score >= 60 ? t("Yaxshi") : t("Ko'proq mashq qiling")}
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">{correct} / {questions.length} ta to'g'ri javob</p>
+            <p className="text-sm text-muted-foreground mt-1">{correct} / {questions.length} {t("ta to'g'ri javob")}</p>
             <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
               <Timer className="w-3 h-3" /> {formatTime(timeSpent)}
             </p>
           </div>
-          <div className="mt-6 text-center"><Button onClick={resetTest}>Biletlar ro'yxatiga qaytish</Button></div>
+          <div className="mt-6 text-center"><Button onClick={resetTest}>{t("Biletlar ro'yxatiga qaytish")}</Button></div>
         </div>
       </DashboardLayout>
     );
@@ -304,8 +320,8 @@ export default function StudentTestsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">Testlar</h1>
-        <p className="text-sm text-muted-foreground">Biletni tanlang va test yechishni boshlang</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("Testlar")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Biletni tanlang va test yechishni boshlang")}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {(tickets || []).map((ticket) => {
@@ -317,24 +333,24 @@ export default function StudentTestsPage() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><FileText className="w-5 h-5 text-primary" /></div>
                 <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Bilet #{ticket.ticket_number}</p>
-                  <p className="text-xs text-muted-foreground">{ticket.title}</p>
+                  <p className="font-display font-semibold text-foreground text-sm">{t("Bilet")} #{ticket.ticket_number}</p>
+                  <p className="text-xs text-muted-foreground">{t(ticket.title)}</p>
                 </div>
               </div>
               {lastResult ? (
                 <div className="flex items-center gap-2 text-xs">
                   <span className={`font-medium ${lastResult.score >= 80 ? "text-success" : lastResult.score >= 60 ? "text-warning" : "text-destructive"}`}>{lastResult.score}%</span>
-                  <span className="text-muted-foreground">· so'nggi natija</span>
+                  <span className="text-muted-foreground">· {t("so'nggi natija")}</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground"><Play className="w-3 h-3" /> Hali yechilmagan</div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground"><Play className="w-3 h-3" /> {t("Hali yechilmagan")}</div>
               )}
             </motion.div>
           );
         })}
       </div>
       {(!tickets || tickets.length === 0) && (
-        <div className="text-center py-12 text-muted-foreground"><FileText className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">Hali biletlar yo'q</p></div>
+        <div className="text-center py-12 text-muted-foreground"><FileText className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">{t("Hali biletlar yo'q")}</p></div>
       )}
     </DashboardLayout>
   );

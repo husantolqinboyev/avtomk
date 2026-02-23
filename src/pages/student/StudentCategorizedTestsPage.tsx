@@ -21,12 +21,13 @@ interface Question {
 const OPTION_LABELS = ["F1", "F2", "F3", "F4"];
 
 export default function StudentCategorizedTestsPage() {
-  const { user } = useAuth();
+  const { user, t } = useAuth();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [showExplanation, setShowExplanation] = useState(false);
 
   // Categorized test groups
   const { data: catTests } = useQuery({
@@ -75,10 +76,11 @@ export default function StudentCategorizedTestsPage() {
     nextTimeoutRef.current = setTimeout(() => {
       if (currentQ < totalQ - 1) {
         setCurrentQ(prev => prev + 1);
+        setShowExplanation(false);
       } else {
         resetToTickets();
       }
-    }, 3000);
+    }, 1500);
   };
 
   const resetToTickets = () => {
@@ -107,7 +109,7 @@ export default function StudentCategorizedTestsPage() {
       <DashboardLayout>
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" size="sm" onClick={resetToTickets}>← Ortga</Button>
+            <Button variant="ghost" size="sm" onClick={resetToTickets}>← {t("Ortga")}</Button>
             <span className="text-sm text-muted-foreground">{currentQ + 1} / {totalQ}</span>
           </div>
 
@@ -117,7 +119,7 @@ export default function StudentCategorizedTestsPage() {
 
           {q && (
             <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <p className="text-base font-medium text-foreground mb-4">{q.question_text}</p>
+              <p className="text-base font-medium text-foreground mb-4">{t(q.question_text)}</p>
               {q.image_url && <img src={q.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" />}
               <div className="space-y-2">
                 {q.options.map((opt, oi) => {
@@ -132,7 +134,7 @@ export default function StudentCategorizedTestsPage() {
                   return (
                     <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
                       className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{opt}
+                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
                     </button>
                   );
                 })}
@@ -140,14 +142,27 @@ export default function StudentCategorizedTestsPage() {
               {isRevealed && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 rounded-lg border border-border bg-muted/30">
                   {isCorrect ? (
-                    <div className="flex items-center gap-2 text-success"><CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">To'g'ri!</span></div>
+                    <div className="flex items-center gap-2 text-success"><CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">{t("To'g'ri!")}</span></div>
                   ) : (
                     <div>
-                      <div className="flex items-center gap-2 text-destructive mb-1"><XCircle className="w-4 h-4" /><span className="text-sm font-medium">Noto'g'ri</span></div>
-                      <p className="text-xs text-muted-foreground">To'g'ri javob: <span className="text-success font-medium">{q.correct_answer}</span></p>
+                      <div className="flex items-center gap-2 text-destructive mb-1"><XCircle className="w-4 h-4" /><span className="text-sm font-medium">{t("Noto'g'ri")}</span></div>
+                      <p className="text-xs text-muted-foreground">{t("To'g'ri javob:")} <span className="text-success font-medium">{t(q.correct_answer)}</span></p>
                     </div>
                   )}
-                  {q.explanation && <p className="text-xs text-muted-foreground mt-1 italic">{q.explanation}</p>}
+                  {q.explanation && (
+                    <div className="mt-2">
+                      {!showExplanation ? (
+                        <Button variant="ghost" size="sm" className="h-7 text-[10px] px-2" onClick={() => {
+                          if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+                          setShowExplanation(true);
+                        }}>
+                          {t("Izoh o'qish")}
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic border-t border-border pt-2 mt-2">{t(q.explanation)}</p>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -155,10 +170,10 @@ export default function StudentCategorizedTestsPage() {
 
           <div className="flex justify-end mt-4">
             {isRevealed && currentQ < totalQ - 1 && (
-              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>Keyingi <ArrowRight className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={() => { if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current); setCurrentQ(currentQ + 1); }}>{t("Keyingi")} <ArrowRight className="w-4 h-4 ml-1" /></Button>
             )}
             {isRevealed && currentQ === totalQ - 1 && (
-              <Button size="sm" onClick={resetToTickets}>Yakunlash <CheckCircle className="w-4 h-4 ml-1" /></Button>
+              <Button size="sm" onClick={resetToTickets}>{t("Yakunlash")} <CheckCircle className="w-4 h-4 ml-1" /></Button>
             )}
           </div>
         </div>
@@ -175,9 +190,9 @@ export default function StudentCategorizedTestsPage() {
     return (
       <DashboardLayout>
         <div className="mb-6">
-          <Button variant="ghost" size="sm" onClick={resetToGroups} className="mb-2">← Ortga</Button>
-          <h1 className="text-2xl font-display font-bold text-foreground">{group?.title}</h1>
-          <p className="text-sm text-muted-foreground">Biletni tanlang va mashq qiling</p>
+          <Button variant="ghost" size="sm" onClick={resetToGroups} className="mb-2">← {t("Ortga")}</Button>
+          <h1 className="text-2xl font-display font-bold text-foreground">{t(group?.title || "")}</h1>
+          <p className="text-sm text-muted-foreground">{t("Biletni tanlang va mashq qiling")}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {groupTickets.map((ticket: any) => (
@@ -187,15 +202,15 @@ export default function StudentCategorizedTestsPage() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-accent/50 flex items-center justify-center"><BookOpen className="w-5 h-5 text-primary" /></div>
                 <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Bilet #{ticket.ticket_number}</p>
-                  <p className="text-xs text-muted-foreground">{ticket.title}</p>
+                  <p className="font-display font-semibold text-foreground text-sm">{t("Bilet")} #{ticket.ticket_number}</p>
+                  <p className="text-xs text-muted-foreground">{t(ticket.title)}</p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
         {groupTickets.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground"><BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">Biletlar yo'q</p></div>
+          <div className="text-center py-12 text-muted-foreground"><BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">{t("Biletlar yo'q")}</p></div>
         )}
       </DashboardLayout>
     );
@@ -205,8 +220,8 @@ export default function StudentCategorizedTestsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">Mavzulashtirilgan testlar</h1>
-        <p className="text-sm text-muted-foreground">Guruhni tanlang va mashq qiling</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("Mavzulashtirilgan testlar")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Guruhni tanlang va mashq qiling")}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {(catTests || []).map((ct: any) => (
@@ -216,15 +231,15 @@ export default function StudentCategorizedTestsPage() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><FileText className="w-5 h-5 text-primary" /></div>
               <div>
-                <p className="font-display font-semibold text-foreground text-sm">{ct.title}</p>
-                <p className="text-xs text-muted-foreground">{(ct.ticket_ids as string[]).length} ta bilet</p>
+                <p className="font-display font-semibold text-foreground text-sm">{t(ct.title)}</p>
+                <p className="text-xs text-muted-foreground">{(ct.ticket_ids as string[]).length} {t("ta bilet")}</p>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
       {(!catTests || catTests.length === 0) && (
-        <div className="text-center py-12 text-muted-foreground"><BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">Hali guruhlar yo'q</p></div>
+        <div className="text-center py-12 text-muted-foreground"><BookOpen className="w-10 h-10 mx-auto mb-2 opacity-30" /><p className="text-sm">{t("Hali guruhlar yo'q")}</p></div>
       )}
     </DashboardLayout>
   );

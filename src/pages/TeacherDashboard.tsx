@@ -4,8 +4,10 @@ import { Users, FileText, BarChart3, Bell, CheckCircle, Clock } from "lucide-rea
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TeacherDashboard() {
+  const { t } = useAuth();
   const { data: stats } = useQuery({
     queryKey: ["teacher-dash-stats"],
     queryFn: async () => {
@@ -37,22 +39,22 @@ export default function TeacherDashboard() {
       const userIds = [...new Set(data.map((r) => r.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
       const map = Object.fromEntries((profiles || []).map((p) => [p.user_id, p.full_name]));
-      return data.map((r) => ({ ...r, student_name: map[r.user_id] || "Noma'lum" }));
+      return data.map((r) => ({ ...r, student_name: map[r.user_id] || t("Noma'lum") }));
     },
   });
 
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-display font-bold text-foreground">O'qituvchi paneli</h1>
-        <p className="text-sm text-muted-foreground">O'quvchilaringiz natijalarini kuzating</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">{t("O'qituvchi paneli")}</h1>
+        <p className="text-sm text-muted-foreground">{t("O'quvchilaringiz natijalarini kuzating")}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <StatCard title="O'quvchilar" value={stats?.studentCount || 0} icon={Users} variant="primary" />
-        <StatCard title="Biletlar" value={stats?.ticketCount || 0} icon={FileText} variant="success" />
-        <StatCard title="O'rtacha ball" value={`${stats?.avgScore || 0}%`} icon={BarChart3} variant="warning" />
-        <StatCard title="Bugungi testlar" value={stats?.todayResults || 0} icon={Bell} subtitle="Bugun" />
+        <StatCard title={t("O'quvchilar")} value={stats?.studentCount || 0} icon={Users} variant="primary" />
+        <StatCard title={t("Biletlar")} value={stats?.ticketCount || 0} icon={FileText} variant="success" />
+        <StatCard title={t("O'rtacha ball")} value={`${stats?.avgScore || 0}%`} icon={BarChart3} variant="warning" />
+        <StatCard title={t("Bugungi testlar")} value={stats?.todayResults || 0} icon={Bell} subtitle={t("Bugun")} />
       </div>
 
       <motion.div
@@ -62,16 +64,16 @@ export default function TeacherDashboard() {
         className="rounded-xl border border-border bg-card shadow-card overflow-hidden"
       >
         <div className="p-5 border-b border-border">
-          <h3 className="font-display font-semibold text-foreground">So'nggi natijalar</h3>
+          <h3 className="font-display font-semibold text-foreground">{t("So'nggi natijalar")}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">O'quvchi</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Bilet</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Ball</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3 hidden sm:table-cell">Sana</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">{t("O'quvchi")}</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">{t("Bilet")}</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">{t("Ball")}</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3 hidden sm:table-cell">{t("Sana")}</th>
               </tr>
             </thead>
             <tbody>
@@ -95,7 +97,7 @@ export default function TeacherDashboard() {
                 </tr>
               ))}
               {(!recentResults || recentResults.length === 0) && (
-                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">Hali natijalar yo'q</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">{t("Hali natijalar yo'q")}</td></tr>
               )}
             </tbody>
           </table>
