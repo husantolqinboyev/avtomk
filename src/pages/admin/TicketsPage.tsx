@@ -81,18 +81,32 @@ export default function TicketsPage() {
 
   const handleJsonImport = () => {
     try {
-      const parsed = JSON.parse(jsonInput);
-      if (!Array.isArray(parsed)) throw new Error("JSON array bo'lishi kerak");
+      let parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) {
+        // Try to see if it's multiple JSON objects/arrays concatenated or wrapped
+        if (typeof parsed === 'object') {
+          parsed = [parsed];
+        } else {
+          throw new Error("JSON array bo'lishi kerak");
+        }
+      }
+
+      const replaceBranding = (text: string) => {
+        if (!text) return text;
+        return text.replace(/avtoquiz/gi, "Avtotest Samandar");
+      };
+
       const imported: QuestionInput[] = parsed.map((item: any) => ({
-        question_text: item.question || "",
-        image_url: item.image || "",
-        options: item.options || [],
-        correct_answer: item.correct_answer || "",
-        explanation: item.explanation || "",
+        question_text: replaceBranding(item.question || item.question_text || ""),
+        image_url: item.image || item.image_url || "",
+        options: (item.options || []).map((o: string) => replaceBranding(o)),
+        correct_answer: replaceBranding(item.correct_answer || ""),
+        explanation: replaceBranding(item.explanation || ""),
       }));
+
       setQuestions([...questions, ...imported]);
       setJsonInput("");
-      toast({ title: `${imported.length} ta savol import qilindi` });
+      toast({ title: `${imported.length} ta savol import qilindi va brending yangilandi` });
     } catch (e: any) {
       toast({ title: "JSON xatosi", description: e.message, variant: "destructive" });
     }

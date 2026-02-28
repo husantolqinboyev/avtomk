@@ -192,6 +192,19 @@ export default function StudentRandomTestsPage() {
   if (testSize && questions.length > 0 && !showResults) {
     const q = questions[currentQ];
     const totalQ = questions.length;
+    const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+    const [shouldShuffle, setShouldShuffle] = useState(false);
+
+    useEffect(() => {
+      if (q) {
+        if (shouldShuffle) {
+          setShuffledOptions([...q.options].sort(() => Math.random() - 0.5));
+        } else {
+          setShuffledOptions([...q.options]);
+        }
+      }
+    }, [q, shouldShuffle]);
+
     const isRevealed = revealed[currentQ];
     const selectedAnswer = answers[currentQ];
     const isCorrect = selectedAnswer === q?.correct_answer;
@@ -202,6 +215,10 @@ export default function StudentRandomTestsPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">{currentQ + 1} / {totalQ}</span>
+              <Button variant="outline" size="sm" className={`h-9 items-center gap-2 px-3 rounded-lg ${shouldShuffle ? "bg-primary/20 border-primary text-primary" : ""}`} onClick={() => setShouldShuffle(!shouldShuffle)}>
+                <Shuffle className="w-4 h-4" />
+                <span className="text-xs font-medium hidden sm:inline">{t("Variantlarni aralashtirish")}</span>
+              </Button>
               <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-lg" onClick={toggleFullscreen}>
                 {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
               </Button>
@@ -237,7 +254,7 @@ export default function StudentRandomTestsPage() {
                 )}
 
                 <div className="space-y-3 w-full">
-                  {q.options.map((opt: string, oi: number) => {
+                  {shuffledOptions.map((opt: string, oi: number) => {
                     const isThisCorrect = opt === q.correct_answer;
                     const isThisSelected = selectedAnswer === opt;
                     let optClass = "border-border hover:border-primary/50 text-foreground bg-card";
