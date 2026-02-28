@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Users, UserPlus, Trash2, Search, KeyRound, UserMinus, Link2, Smartphone } from "lucide-react";
+import { Users, UserPlus, Trash2, Search, KeyRound, UserMinus, Link2, Smartphone, Monitor, Settings2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatDisplayLogin } from "@/lib/utils";
@@ -20,7 +20,14 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     full_name: "", email: "", password: "", role: "student" as "student" | "teacher", expires_at: "",
+    pc_limit: 1, mobile_limit: 1
   });
+
+  // Edit limits dialog
+  const [limitsDialog, setLimitsDialog] = useState<{ open: boolean; userId: string; name: string; pc: number; mobile: number }>({
+    open: false, userId: "", name: "", pc: 1, mobile: 1
+  });
+  const [limitsLoading, setLimitsLoading] = useState(false);
 
   // Password dialog
   const [pwDialog, setPwDialog] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: "", name: "" });
@@ -94,12 +101,19 @@ export default function UsersPage() {
     setCreating(true);
     try {
       const emailWithDomain = form.email.includes("@") ? form.email : `${form.email}@avto.uz`;
-      const data = await invokeEdge({ email: emailWithDomain, password: form.password, full_name: form.full_name, role: form.role });
+      const data = await invokeEdge({
+        email: emailWithDomain,
+        password: form.password,
+        full_name: form.full_name,
+        role: form.role,
+        pc_limit: form.pc_limit,
+        mobile_limit: form.mobile_limit
+      });
       if (form.expires_at && data?.user?.id) {
         await supabase.from("profiles").update({ expires_at: form.expires_at }).eq("user_id", data.user.id);
       }
       toast({ title: t("Foydalanuvchi yaratildi!") });
-      setForm({ full_name: "", email: "", password: "", role: "student", expires_at: "" });
+      setForm({ full_name: "", email: "", password: "", role: "student", expires_at: "", pc_limit: 1, mobile_limit: 1 });
       refetch();
     } catch (e: any) {
       toast({ title: "Xatolik", description: e.message, variant: "destructive" });
@@ -160,6 +174,25 @@ export default function UsersPage() {
     refetchAssign();
   };
 
+  const handleUpdateLimits = async () => {
+    setLimitsLoading(true);
+    try {
+      const { error } = await supabase.from("profiles").update({
+        pc_limit: limitsDialog.pc,
+        mobile_limit: limitsDialog.mobile
+      }).eq("user_id", limitsDialog.userId);
+
+      if (error) throw error;
+      toast({ title: t("Qurilma limitlari yangilandi!") });
+      setLimitsDialog({ ...limitsDialog, open: false });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Xatolik", description: e.message, variant: "destructive" });
+    } finally {
+      setLimitsLoading(false);
+    }
+  };
+
   const getTeacherName = (teacherId: string) => teachers.find((t) => t.user_id === teacherId)?.full_name || "—";
 
   const filtered = (profiles || []).filter(
@@ -205,6 +238,18 @@ export default function UsersPage() {
             <Label className="text-xs">{t("Faoliyat muddati")}</Label>
             <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
           </div>
+          {form.role === "student" && (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("PC limiti")}</Label>
+                <Input type="number" min={1} value={form.pc_limit} onChange={(e) => setForm({ ...form, pc_limit: parseInt(e.target.value) || 1 })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("Mobil limiti")}</Label>
+                <Input type="number" min={1} value={form.mobile_limit} onChange={(e) => setForm({ ...form, mobile_limit: parseInt(e.target.value) || 1 })} />
+              </div>
+            </>
+          )}
           <div className="flex items-end">
             <Button onClick={handleCreate} disabled={creating} className="w-full">
               {creating ? t("Yaratilmoqda...") : t("Yaratish")}
@@ -233,6 +278,7 @@ export default function UsersPage() {
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden sm:table-cell">{t("Telefon")}</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">{t("Rol")}</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">{t("O'qituvchi")}</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">{t("Limitlar")}</th>
                 <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium hidden md:table-cell">{t("Muddat")}</th>
                 <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">{t("Amallar")}</th>
               </tr>
@@ -269,6 +315,31 @@ export default function UsersPage() {
                         </button>
                       ) : "—"}
                     </td>
+                    <td className="py-2.5 px-3 text-xs text-muted-foreground hidden md:table-cell">
+                      {p.role === "student" ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md border border-border/50">
+                            <div className="flex items-center gap-1">
+                              <Monitor className="w-3 h-3" />
+                              <span className="font-medium">{p.pc_limit || 1}</span>
+                            </div>
+                            <div className="w-[1px] h-3 bg-border" />
+                            <div className="flex items-center gap-1">
+                              <Smartphone className="w-3 h-3" />
+                              <span className="font-medium">{p.mobile_limit || 1}</span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                            onClick={() => setLimitsDialog({ open: true, userId: p.user_id, name: p.full_name, pc: p.pc_limit || 1, mobile: p.mobile_limit || 1 })}
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : "—"}
+                    </td>
                     <td className="py-2.5 px-3 text-muted-foreground text-xs hidden md:table-cell">
                       {p.expires_at ? new Date(p.expires_at).toLocaleDateString("uz") : t("Cheksiz")}
                     </td>
@@ -301,7 +372,7 @@ export default function UsersPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">{t("Foydalanuvchilar topilmadi")}</td></tr>
+                <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">{t("Foydalanuvchilar topilmadi")}</td></tr>
               )}
             </tbody>
           </table>
@@ -341,6 +412,27 @@ export default function UsersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialog({ open: false, studentId: "", name: "" })}>{t("Bekor qilish")}</Button>
             <Button onClick={handleAssign} disabled={!selectedTeacher}>{t("Biriktirish")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Limits Dialog */}
+      <Dialog open={limitsDialog.open} onOpenChange={(o) => setLimitsDialog({ ...limitsDialog, open: o })}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{limitsDialog.name} — {t("Qurilma limitlari")}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label>{t("PC limiti")}</Label>
+              <Input type="number" min={1} value={limitsDialog.pc} onChange={(e) => setLimitsDialog({ ...limitsDialog, pc: parseInt(e.target.value) || 1 })} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("Mobil limiti")}</Label>
+              <Input type="number" min={1} value={limitsDialog.mobile} onChange={(e) => setLimitsDialog({ ...limitsDialog, mobile: parseInt(e.target.value) || 1 })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLimitsDialog({ ...limitsDialog, open: false })}>{t("Bekor qilish")}</Button>
+            <Button onClick={handleUpdateLimits} disabled={limitsLoading}>{limitsLoading ? t("Saqlanmoqda...") : t("Saqlash")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -36,7 +36,7 @@ export function useDeviceFingerprint(userId: string | undefined) {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("pc_device_id, mobile_device_id")
+          .select("pc_device_ids, mobile_device_ids, pc_limit, mobile_limit")
           .eq("user_id", userId)
           .single();
 
@@ -48,50 +48,50 @@ export function useDeviceFingerprint(userId: string | undefined) {
           return;
         }
 
-        const column = deviceType === "pc" ? "pc_device_id" : "mobile_device_id";
-        const currentDeviceId = profile[column];
+        const column = deviceType === "pc" ? "pc_device_ids" : "mobile_device_ids";
+        const limitColumn = deviceType === "pc" ? "pc_limit" : "mobile_limit";
 
-        if (!currentDeviceId) {
-          // Slot is empty — register this device
-          await supabase
-            .from("profiles")
-            .update({ [column]: visitorId })
-            .eq("user_id", userId);
+        const deviceIds = (profile[column] as string[]) || [];
+        const limit = (profile[limitColumn] as number) || 1;
 
+        if (deviceIds.includes(visitorId)) {
+          // Device already registered
           localStorage.setItem(STORAGE_KEY, visitorId);
-
           if (!cancelled) {
             setAllowed(true);
             setChecking(false);
           }
-        } else if (currentDeviceId === visitorId) {
-          // Same device — allow
-          // Refresh trust id just in case
-          localStorage.setItem(STORAGE_KEY, visitorId);
-
-          if (!cancelled) {
-            setAllowed(true);
-            setChecking(false);
-          }
-        } else if (localTrustId === currentDeviceId) {
-          // "LOOSEN" logic:
-          // The fingerprint changed (maybe browser/OS update), but this device 
-          // still has the OLD ID in its localStorage. We can trust it and update to the NEW ID.
+        } else if (localTrustId && deviceIds.includes(localTrustId)) {
+          // "LOOSEN" logic: Replacing an old ID on the same device
           console.log("Device update detected. Updating fingerprint.");
+          const newDeviceIds = deviceIds.map(id => id === localTrustId ? visitorId : id);
 
           await supabase
             .from("profiles")
-            .update({ [column]: visitorId })
+            .update({ [column]: newDeviceIds })
             .eq("user_id", userId);
 
           localStorage.setItem(STORAGE_KEY, visitorId);
+          if (!cancelled) {
+            setAllowed(true);
+            setChecking(false);
+          }
+        } else if (deviceIds.length < limit) {
+          // New device and space available
+          const newDeviceIds = [...deviceIds, visitorId];
 
+          await supabase
+            .from("profiles")
+            .update({ [column]: newDeviceIds })
+            .eq("user_id", userId);
+
+          localStorage.setItem(STORAGE_KEY, visitorId);
           if (!cancelled) {
             setAllowed(true);
             setChecking(false);
           }
         } else {
-          // Different device — blocked
+          // Limit reached
           if (!cancelled) {
             setAllowed(false);
             setChecking(false);
