@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { FileText, Play, CheckCircle, XCircle, ArrowRight, Timer } from "lucide-react";
+import { FileText, Play, CheckCircle, XCircle, ArrowRight, Timer, Maximize, Minimize } from "lucide-react";
 import { motion } from "framer-motion";
 import { getCachedTickets, cacheTickets, getCachedQuestions, cacheQuestions } from "@/lib/indexedDB";
 
@@ -33,6 +33,7 @@ export default function StudentTestsPage() {
   const [showResults, setShowResults] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Anti copy-paste
   useEffect(() => {
@@ -71,6 +72,22 @@ export default function StudentTestsPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [activeTicketId, showResults, startTime]);
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   // Tickets with IndexedDB cache
   const { data: tickets } = useQuery({
@@ -183,6 +200,28 @@ export default function StudentTestsPage() {
     }
   };
 
+  // Keyboard support for F1-F4
+  useEffect(() => {
+    if (!activeTicketId || showResults || !questions || !q || revealed[currentQ]) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const keyMap: Record<string, number> = {
+        "F1": 0, "F2": 1, "F3": 2, "F4": 3
+      };
+
+      if (e.key in keyMap) {
+        e.preventDefault();
+        const index = keyMap[e.key];
+        if (q.options[index]) {
+          handleAnswer(q.options[index]);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeTicketId, showResults, questions, currentQ, revealed, q, handleAnswer]);
+
   // Active test view
   if (activeTicketId && questions && !showResults) {
     const isRevealed = revealed[currentQ];
@@ -191,46 +230,73 @@ export default function StudentTestsPage() {
 
     return (
       <DashboardLayout>
-        <div className="max-w-2xl mx-auto select-none" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-muted-foreground">{currentQ + 1} / {totalQ}</span>
-            <span className={`flex items-center gap-1 text-sm font-mono font-bold px-3 py-1 rounded-full ${timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+        <div className="max-w-6xl mx-auto select-none px-4" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-semibold text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">{currentQ + 1} / {totalQ}</span>
+              <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-lg" onClick={toggleFullscreen}>
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </Button>
+            </div>
+            <span className={`flex items-center gap-2 text-base font-mono font-bold px-4 py-1.5 rounded-full shadow-sm ${timeLeft < 60 ? "bg-destructive/10 text-destructive animate-pulse" : timeLeft < 300 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
               }`}>
-              <Timer className="w-3.5 h-3.5" /> {formatTime(timeLeft)}
+              <Timer className="w-4 h-4" /> {formatTime(timeLeft)}
             </span>
           </div>
 
-          <div className="h-2 rounded-full bg-muted mb-6 overflow-hidden">
-            <div className="h-full rounded-full gradient-primary transition-all" style={{ width: `${((currentQ + 1) / totalQ) * 100}%` }} />
+          <div className="h-2.5 rounded-full bg-muted mb-8 overflow-hidden shadow-inner">
+            <div className="h-full rounded-full gradient-primary transition-all duration-500" style={{ width: `${((currentQ + 1) / totalQ) * 100}%` }} />
           </div>
 
           {q && (
-            <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <p className="text-base font-medium text-foreground mb-4">{t(q.question_text)}</p>
-              {q.image_url && <img src={q.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" draggable={false} />}
-              <div className="space-y-2">
-                {q.options.map((opt, oi) => {
-                  const isThisCorrect = opt === q.correct_answer;
-                  const isThisSelected = selectedAnswer === opt;
-                  let optClass = "border-border hover:border-primary/50 text-foreground";
-                  if (isRevealed) {
-                    if (isThisCorrect) {
-                      optClass = "border-success bg-success/10 text-success font-medium";
-                    } else if (isThisSelected && !isThisCorrect) {
-                      optClass = "border-destructive bg-destructive/10 text-destructive font-medium";
-                    } else {
-                      optClass = "border-border text-muted-foreground opacity-60";
+            <motion.div key={currentQ} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-4 md:p-8 shadow-xl">
+              <div className="mb-8 p-6 rounded-xl bg-muted/30 border border-border/50">
+                <h2 className="text-xl md:text-2xl font-bold text-foreground leading-relaxed">
+                  {t(q.question_text)}
+                </h2>
+              </div>
+
+              <div className={`grid grid-cols-1 ${q.image_url ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-10 items-start`}>
+                {q.image_url && (
+                  <div className="w-full overflow-hidden rounded-xl border border-border bg-muted/20">
+                    <img
+                      src={q.image_url}
+                      alt=""
+                      className="w-full h-auto max-h-[500px] object-contain mx-auto"
+                      draggable={false}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-3 w-full">
+                  {q.options.map((opt, oi) => {
+                    const isThisCorrect = opt === q.correct_answer;
+                    const isThisSelected = selectedAnswer === opt;
+                    let optClass = "border-border hover:border-primary/50 text-foreground bg-card";
+                    if (isRevealed) {
+                      if (isThisCorrect) {
+                        optClass = "border-success bg-success/10 text-success font-semibold shadow-sm";
+                      } else if (isThisSelected && !isThisCorrect) {
+                        optClass = "border-destructive bg-destructive/10 text-destructive font-semibold shadow-sm";
+                      } else {
+                        optClass = "border-border text-muted-foreground opacity-60";
+                      }
+                    } else if (isThisSelected) {
+                      optClass = "border-primary bg-primary/10 text-primary font-semibold shadow-sm";
                     }
-                  } else if (isThisSelected) {
-                    optClass = "border-primary bg-primary/10 text-primary font-medium";
-                  }
-                  return (
-                    <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
-                      className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
+                        className={`w-full text-left px-5 py-4 rounded-xl border text-sm md:text-base transition-all duration-200 ${optClass} active:scale-[0.98]`}>
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center font-bold text-xs">
+                            {OPTION_LABELS[oi] || `F${oi + 1}`}
+                          </span>
+                          <span className="pt-1">{t(opt)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Instant feedback */}

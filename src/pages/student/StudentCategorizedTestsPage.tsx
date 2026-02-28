@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { FileText, BookOpen, CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { FileText, BookOpen, CheckCircle, XCircle, ArrowRight, Maximize, Minimize } from "lucide-react";
 import { motion } from "framer-motion";
 import { getCachedTickets, cacheTickets, getCachedQuestions, cacheQuestions } from "@/lib/indexedDB";
 
@@ -28,6 +28,7 @@ export default function StudentCategorizedTestsPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [showExplanation, setShowExplanation] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Categorized test groups
   const { data: catTests } = useQuery({
@@ -99,6 +100,46 @@ export default function StudentCategorizedTestsPage() {
     setRevealed({});
   };
 
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  // Keyboard support for F1-F4
+  useEffect(() => {
+    if (!activeTicketId || !questions || !q || revealed[currentQ]) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const keyMap: Record<string, number> = {
+        "F1": 0, "F2": 1, "F3": 2, "F4": 3
+      };
+
+      if (e.key in keyMap) {
+        e.preventDefault();
+        const index = keyMap[e.key];
+        if (q.options[index]) {
+          handleAnswer(q.options[index]);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeTicketId, questions, currentQ, revealed, q, handleAnswer]);
+
   // Practice mode
   if (activeTicketId && questions) {
     const isRevealed = revealed[currentQ];
@@ -107,37 +148,63 @@ export default function StudentCategorizedTestsPage() {
 
     return (
       <DashboardLayout>
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" size="sm" onClick={resetToTickets}>← {t("Ortga")}</Button>
-            <span className="text-sm text-muted-foreground">{currentQ + 1} / {totalQ}</span>
+        <div className="max-w-6xl mx-auto select-none px-4" style={{ userSelect: "none" }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={resetToTickets} className="h-9 px-4 rounded-lg">← {t("Ortga")}</Button>
+              <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-lg" onClick={toggleFullscreen}>
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </Button>
+            </div>
+            <span className="text-sm font-semibold text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">{currentQ + 1} / {totalQ}</span>
           </div>
 
-          <div className="h-2 rounded-full bg-muted mb-6 overflow-hidden">
-            <div className="h-full rounded-full gradient-primary transition-all" style={{ width: `${((currentQ + 1) / totalQ) * 100}%` }} />
+          <div className="h-2.5 rounded-full bg-muted mb-8 overflow-hidden shadow-inner">
+            <div className="h-full rounded-full gradient-primary transition-all duration-500" style={{ width: `${((currentQ + 1) / totalQ) * 100}%` }} />
           </div>
 
           {q && (
-            <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <p className="text-base font-medium text-foreground mb-4">{t(q.question_text)}</p>
-              {q.image_url && <img src={q.image_url} alt="" className="w-full max-h-48 object-contain rounded-lg mb-4 bg-muted/30" />}
-              <div className="space-y-2">
-                {q.options.map((opt, oi) => {
-                  const isThisCorrect = opt === q.correct_answer;
-                  const isThisSelected = selectedAnswer === opt;
-                  let optClass = "border-border hover:border-primary/50 text-foreground";
-                  if (isRevealed) {
-                    if (isThisCorrect) optClass = "border-success bg-success/10 text-success font-medium";
-                    else if (isThisSelected) optClass = "border-destructive bg-destructive/10 text-destructive font-medium";
-                    else optClass = "border-border text-muted-foreground opacity-60";
-                  }
-                  return (
-                    <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
-                      className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all ${optClass}`}>
-                      <span className="font-bold mr-2">{OPTION_LABELS[oi] || `F${oi + 1}`}.</span>{t(opt)}
-                    </button>
-                  );
-                })}
+            <motion.div key={currentQ} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-4 md:p-8 shadow-xl">
+              <div className="mb-8 p-6 rounded-xl bg-muted/30 border border-border/50">
+                <h2 className="text-xl md:text-2xl font-bold text-foreground leading-relaxed">
+                  {t(q.question_text)}
+                </h2>
+              </div>
+
+              <div className={`grid grid-cols-1 ${q.image_url ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-10 items-start`}>
+                {q.image_url && (
+                  <div className="w-full overflow-hidden rounded-xl border border-border bg-muted/20">
+                    <img
+                      src={q.image_url}
+                      alt=""
+                      className="w-full h-auto max-h-[500px] object-contain mx-auto"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-3 w-full">
+                  {q.options.map((opt, oi) => {
+                    const isThisCorrect = opt === q.correct_answer;
+                    const isThisSelected = selectedAnswer === opt;
+                    let optClass = "border-border hover:border-primary/50 text-foreground bg-card";
+                    if (isRevealed) {
+                      if (isThisCorrect) optClass = "border-success bg-success/10 text-success font-semibold shadow-sm";
+                      else if (isThisSelected) optClass = "border-destructive bg-destructive/10 text-destructive font-semibold shadow-sm";
+                      else optClass = "border-border text-muted-foreground opacity-60";
+                    }
+                    return (
+                      <button key={oi} onClick={() => handleAnswer(opt)} disabled={isRevealed}
+                        className={`w-full text-left px-5 py-4 rounded-xl border text-sm md:text-base transition-all duration-200 ${optClass} active:scale-[0.98]`}>
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center font-bold text-xs">
+                            {OPTION_LABELS[oi] || `F${oi + 1}`}
+                          </span>
+                          <span className="pt-1">{t(opt)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               {isRevealed && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 rounded-lg border border-border bg-muted/30">

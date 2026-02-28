@@ -3,6 +3,7 @@ import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import { supabase } from "@/integrations/supabase/client";
 
 type DeviceType = "pc" | "mobile";
+const STORAGE_KEY = "avtomaktab_device_trust_id";
 
 function detectDeviceType(): DeviceType {
   const ua = navigator.userAgent;
@@ -31,6 +32,7 @@ export function useDeviceFingerprint(userId: string | undefined) {
         const result = await fp.get();
         const visitorId = result.visitorId;
         const deviceType = detectDeviceType();
+        const localTrustId = localStorage.getItem(STORAGE_KEY);
 
         const { data: profile } = await supabase
           .from("profiles")
@@ -55,12 +57,35 @@ export function useDeviceFingerprint(userId: string | undefined) {
             .from("profiles")
             .update({ [column]: visitorId })
             .eq("user_id", userId);
+
+          localStorage.setItem(STORAGE_KEY, visitorId);
+
           if (!cancelled) {
             setAllowed(true);
             setChecking(false);
           }
         } else if (currentDeviceId === visitorId) {
           // Same device — allow
+          // Refresh trust id just in case
+          localStorage.setItem(STORAGE_KEY, visitorId);
+
+          if (!cancelled) {
+            setAllowed(true);
+            setChecking(false);
+          }
+        } else if (localTrustId === currentDeviceId) {
+          // "LOOSEN" logic:
+          // The fingerprint changed (maybe browser/OS update), but this device 
+          // still has the OLD ID in its localStorage. We can trust it and update to the NEW ID.
+          console.log("Device update detected. Updating fingerprint.");
+
+          await supabase
+            .from("profiles")
+            .update({ [column]: visitorId })
+            .eq("user_id", userId);
+
+          localStorage.setItem(STORAGE_KEY, visitorId);
+
           if (!cancelled) {
             setAllowed(true);
             setChecking(false);
@@ -72,7 +97,8 @@ export function useDeviceFingerprint(userId: string | undefined) {
             setChecking(false);
           }
         }
-      } catch {
+      } catch (err) {
+        console.error("Device fingerprint error:", err);
         if (!cancelled) {
           setAllowed(true); // fallback: don't block on error
           setChecking(false);
