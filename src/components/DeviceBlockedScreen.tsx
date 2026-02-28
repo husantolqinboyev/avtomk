@@ -1,5 +1,6 @@
 import { ShieldAlert, Monitor, Smartphone, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 export default function DeviceBlockedScreen() {
   const { logout, t } = useAuth();
@@ -33,13 +34,23 @@ export default function DeviceBlockedScreen() {
           </p>
         </div>
 
-        <button
-          onClick={() => logout()}
-          className="w-full py-3 px-4 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-medium flex items-center justify-center gap-2 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          {t("Chiqish")}
-        </button>
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="destructive"
+            onClick={() => logout()}
+            className="w-full gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            {t("Hisobdan chiqish")}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => logout()}
+            className="w-full text-muted-foreground"
+          >
+            {t("Login sahifasiga qaytish")}
+          </Button>
+        </div>
       </div>
     </div>
   );
