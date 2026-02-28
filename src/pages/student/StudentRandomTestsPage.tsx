@@ -81,6 +81,16 @@ export default function StudentRandomTestsPage() {
     },
   });
 
+  const { data: catTests } = useQuery({
+    queryKey: ["categorized-tests-filter-random"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categorized_tests").select("ticket_ids");
+      return data || [];
+    },
+  });
+
+  const categorizedTicketIds = (catTests || []).flatMap(ct => ct.ticket_ids as string[]);
+
   const startTest = async (size: number) => {
     setLoading(true);
     try {
@@ -89,10 +99,10 @@ export default function StudentRandomTestsPage() {
       const allCached = await getAllCachedQuestions();
 
       if (allCached.length > 0) {
-        allQuestions = allCached as Question[];
+        allQuestions = (allCached as Question[]).filter(q => !categorizedTicketIds.includes(q.ticket_id));
       } else {
         // Fetch all questions from server and cache them
-        const tks = tickets || [];
+        const tks = (tickets || []).filter(t => !categorizedTicketIds.includes(t.id));
         for (const t of tks) {
           const cached = await getCachedQuestions(t.id);
           if (cached.length > 0) {

@@ -89,16 +89,29 @@ export default function StudentTestsPage() {
     }
   };
 
+  // Categorized tickets to filter out
+  const { data: catTests } = useQuery({
+    queryKey: ["categorized-tests-filter"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categorized_tests").select("ticket_ids");
+      return data || [];
+    },
+  });
+
+  const categorizedTicketIds = (catTests || []).flatMap(ct => ct.ticket_ids as string[]);
+
   // Tickets with IndexedDB cache
   const { data: tickets } = useQuery({
     queryKey: ["student-tickets"],
     queryFn: async () => {
       const cached = await getCachedTickets();
-      if (cached.length > 0) return cached;
+      if (cached.length > 0) return cached.filter((t: any) => !categorizedTicketIds.includes(t.id));
       const { data } = await supabase.from("tickets").select("*").order("ticket_number");
       if (data && data.length > 0) await cacheTickets(data);
-      return data || [];
+      return (data || []).filter((t: any) => !categorizedTicketIds.includes(t.id));
     },
+    // Add dependency to re-filter when catTests data arrives
+    enabled: !!catTests
   });
 
   // Questions with IndexedDB cache

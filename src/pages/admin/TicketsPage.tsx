@@ -36,6 +36,10 @@ export default function TicketsPage() {
   const [editNumber, setEditNumber] = useState(1);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [editQ, setEditQ] = useState<any>({});
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [mergePairs, setMergePairs] = useState(true);
 
   const { data: tickets, refetch } = useQuery({
     queryKey: ["tickets"],
@@ -79,26 +83,22 @@ export default function TicketsPage() {
     setQuestions(questions.filter((_, i) => i !== idx));
   };
 
+  const cleanText = (text: string) => {
+    if (!text) return text;
+    // Replace branding
+    let cleaned = text.replace(/avtoquiz|avtoimtihon/gi, "Avtotest Samandar");
+    // Remove navigation artifacts like "Oldingi Keyingi"
+    cleaned = cleaned.replace(/\n\nOldingi\n(Keyingi|Natijalarni ko'rish)/gi, "");
+    return cleaned.trim();
+  };
+
   const handleJsonImport = () => {
     try {
       let parsed = JSON.parse(jsonInput);
       if (!Array.isArray(parsed)) {
-        // Try to see if it's multiple JSON objects/arrays concatenated or wrapped
-        if (typeof parsed === 'object') {
-          parsed = [parsed];
-        } else {
-          throw new Error("JSON array bo'lishi kerak");
-        }
+        if (typeof parsed === 'object') parsed = [parsed];
+        else throw new Error("JSON array bo'lishi kerak");
       }
-
-      const cleanText = (text: string) => {
-        if (!text) return text;
-        // Replace branding
-        let cleaned = text.replace(/avtoquiz|avtoimtihon/gi, "Avtotest Samandar");
-        // Remove navigation artifacts like "Oldingi Keyingi"
-        cleaned = cleaned.replace(/\n\nOldingi\n(Keyingi|Natijalarni ko'rish)/gi, "");
-        return cleaned.trim();
-      };
 
       const imported: QuestionInput[] = parsed.map((item: any) => ({
         question_text: cleanText(item.question || item.question_text || ""),
@@ -113,6 +113,91 @@ export default function TicketsPage() {
       toast({ title: `${imported.length} ta savol import qilindi va brending yangilandi` });
     } catch (e: any) {
       toast({ title: "JSON xatosi", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleBulkImport = async (files: FileList) => {
+    setBulkProcessing(true);
+    let successCount = 0;
+    const fileArray = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    setBulkProgress({ current: 0, total: fileArray.length });
+
+    try {
+      // Get highest ticket number to continue
+      const { data: latestTicket } = await supabase.from("tickets").select("ticket_number").order("ticket_number", { ascending: false }).limit(1).single();
+      let nextNum = (latestTicket?.ticket_number || 0) + 1;
+
+      const step = mergePairs ? 2 : 1;
+
+      for (let i = 0; i < fileArray.length; i += step) {
+        setBulkProgress({ current: i, total: fileArray.length });
+
+        try {
+          const file1 = fileArray[i];
+          const file2 = (mergePairs && (i + 1) < fileArray.length) ? fileArray[i + 1] : null;
+
+          const content1 = await file1.text();
+          const parsed1 = JSON.parse(content1);
+          let combinedQuestions = Array.isArray(parsed1) ? [...parsed1] : [parsed1];
+
+          let ticketTitleName = file1.name.replace('.json', '');
+
+          if (file2) {
+            const content2 = await file2.text();
+            const parsed2 = JSON.parse(content2);
+            const questionsArray2 = Array.isArray(parsed2) ? parsed2 : [parsed2];
+            combinedQuestions = [...combinedQuestions, ...questionsArray2];
+            ticketTitleName += " + " + file2.name.replace('.json', '');
+          }
+
+          // Create ticket
+          const { data: ticket, error: ticketErr } = await supabase.from("tickets")
+            .insert({
+              ticket_number: nextNum,
+              title: `Bilet #${nextNum} (${ticketTitleName})`,
+              created_by: user?.id
+            })
+            .select()
+            .single();
+
+          if (ticketErr) throw ticketErr;
+
+          // Process and insert questions
+          if (combinedQuestions.length > 0) {
+            const qInsert = combinedQuestions.map((q, idx) => ({
+              ticket_id: ticket.id,
+              question_text: cleanText(q.question || q.question_text || ""),
+              image_url: (q.image === "Rasm yo'q" || !q.image) ? null : (q.image || q.image_url || null),
+              options: (q.options || []).filter((o: string) => o && typeof o === 'string' && o.trim()).map((o: string) => cleanText(o)),
+              correct_answer: cleanText(q.correct_answer || ""),
+              explanation: cleanText(q.explanation || ""),
+              order_num: idx + 1
+            }));
+
+            const { error: qErr } = await supabase.from("questions").insert(qInsert);
+            if (qErr) throw qErr;
+          }
+
+          nextNum++;
+          successCount++;
+        } catch (e: any) {
+          console.error(`Error processing files at index ${i}:`, e);
+          toast({ title: "Faylni o'qiy olmadim", description: `Index: ${i}. ${e.message}`, variant: "destructive" });
+        }
+      }
+
+      setBulkProgress({ current: fileArray.length, total: fileArray.length });
+      toast({
+        title: "Bulk import yakunlandi",
+        description: `${successCount} ta bilet muvaffaqiyatli yaratildi (${mergePairs ? 'juftliklar birlashtirildi' : 'alohida'})`
+      });
+      refetch();
+      refetchQuestions();
+      setShowBulkImport(false);
+    } catch (e: any) {
+      toast({ title: "Xatolik", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -202,10 +287,78 @@ export default function TicketsPage() {
           <h1 className="text-2xl font-display font-bold text-foreground">{t("Biletlar")}</h1>
           <p className="text-sm text-muted-foreground">{t("Test biletlarini yaratish va boshqarish")}</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)}>
-          <Plus className="w-4 h-4 mr-1" /> {t("Yangi bilet")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowBulkImport(!showBulkImport)} className={showBulkImport ? "bg-primary/10 border-primary" : ""}>
+            <Upload className="w-4 h-4 mr-1" /> {t("Bulk Import")}
+          </Button>
+          <Button onClick={() => setShowCreate(!showCreate)}>
+            <Plus className="w-4 h-4 mr-1" /> {t("Yangi bilet")}
+          </Button>
+        </div>
       </div>
+
+      {/* Bulk Import UI */}
+      <AnimatePresence>
+        {showBulkImport && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 shadow-card mb-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                <Upload className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">{t("Optom (Bulk) Import")}</h3>
+                <p className="text-sm text-muted-foreground">{t("Bir vaqtda 120 tagacha JSON faylni tanlang.")}</p>
+              </div>
+
+              <div className="flex items-center justify-center gap-4 bg-muted/50 p-3 rounded-lg max-w-sm mx-auto">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="merge-pairs"
+                    checked={mergePairs}
+                    onChange={(e) => setMergePairs(e.target.checked)}
+                    className="w-4 h-4 accent-primary cursor-pointer"
+                  />
+                  <Label htmlFor="merge-pairs" className="text-xs font-semibold cursor-pointer">
+                    {t("Har 2ta faylni birlashtirish (20 talik bilet)")}
+                  </Label>
+                </div>
+              </div>
+
+              <div className="max-w-xs mx-auto">
+                <Label htmlFor="bulk-upload" className="cursor-pointer">
+                  <div className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all font-semibold">
+                    <Plus className="w-5 h-5" /> {t("Fayllarni tanlash")}
+                  </div>
+                </Label>
+                <input
+                  id="bulk-upload"
+                  type="file"
+                  accept=".json"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files) handleBulkImport(e.target.files);
+                  }}
+                  disabled={bulkProcessing}
+                />
+              </div>
+
+              {bulkProcessing && (
+                <div className="mt-4 space-y-2">
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs font-mono">{t("Jarayonda...")} {bulkProgress.current} / {bulkProgress.total}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create form */}
       <AnimatePresence>
