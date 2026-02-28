@@ -91,17 +91,21 @@ export default function TicketsPage() {
         }
       }
 
-      const replaceBranding = (text: string) => {
+      const cleanText = (text: string) => {
         if (!text) return text;
-        return text.replace(/avtoquiz/gi, "Avtotest Samandar");
+        // Replace branding
+        let cleaned = text.replace(/avtoquiz|avtoimtihon/gi, "Avtotest Samandar");
+        // Remove navigation artifacts like "Oldingi Keyingi"
+        cleaned = cleaned.replace(/\n\nOldingi\n(Keyingi|Natijalarni ko'rish)/gi, "");
+        return cleaned.trim();
       };
 
       const imported: QuestionInput[] = parsed.map((item: any) => ({
-        question_text: replaceBranding(item.question || item.question_text || ""),
-        image_url: item.image || item.image_url || "",
-        options: (item.options || []).map((o: string) => replaceBranding(o)),
-        correct_answer: replaceBranding(item.correct_answer || ""),
-        explanation: replaceBranding(item.explanation || ""),
+        question_text: cleanText(item.question || item.question_text || ""),
+        image_url: (item.image === "Rasm yo'q" || !item.image) ? "" : (item.image || item.image_url || ""),
+        options: (item.options || []).map((o: string) => cleanText(o)),
+        correct_answer: cleanText(item.correct_answer || ""),
+        explanation: cleanText(item.explanation || ""),
       }));
 
       setQuestions([...questions, ...imported]);

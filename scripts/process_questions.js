@@ -50,17 +50,20 @@ args.forEach((filePath) => {
         // Process each question
         const processedData = questionsArray.map((q) => {
             // Replace source name in all text fields
-            const replaceText = (text) => {
+            const cleanText = (text) => {
                 if (!text || typeof text !== 'string') return text;
-                return text.replace(/avtoquiz/gi, "Avtotest Samandar");
+                let cleaned = text.replace(/avtoquiz|avtoimtihon/gi, "Avtotest Samandar");
+                // Remove navigation artifacts like "Oldingi Keyingi"
+                cleaned = cleaned.replace(/\n\nOldingi\n(Keyingi|Natijalarni ko'rish)/gi, "");
+                return cleaned.trim();
             };
 
             const newQ = {
-                question_text: replaceText(q.question || q.question_text || ""),
-                image_url: q.image || q.image_url || null,
-                options: (q.options || []).map(replaceText),
-                correct_answer: replaceText(q.correct_answer || ""),
-                explanation: replaceText(q.explanation || ""),
+                question_text: cleanText(q.question || q.question_text || ""),
+                image_url: (q.image === "Rasm yo'q" || !q.image) ? null : (q.image || q.image_url || null),
+                options: (q.options || []).map(cleanText),
+                correct_answer: cleanText(q.correct_answer || ""),
+                explanation: cleanText(q.explanation || ""),
                 order_num: currentIndex // Re-index for the merged set
             };
 
