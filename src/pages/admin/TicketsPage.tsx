@@ -224,13 +224,51 @@ export default function TicketsPage() {
                 </div>
               </div>
 
-              {/* JSON Import */}
-              <div className="border border-border rounded-lg p-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Upload className="w-4 h-4 text-primary" /> {t("JSON orqali import")}
+              {/* JSON Import & Upload */}
+              <div className="border border-border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Upload className="w-4 h-4 text-primary" /> {t("JSON orqali import")}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="json-upload" className="cursor-pointer">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium">
+                        <Plus className="w-3.5 h-3.5" /> {t("Fayl yuklash")}
+                      </div>
+                    </Label>
+                    <input
+                      id="json-upload"
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const content = event.target?.result as string;
+                          setJsonInput(content);
+                          // Auto trigger import after a small delay to ensure state update
+                          setTimeout(() => {
+                            const btn = document.getElementById('json-import-btn');
+                            if (btn) btn.click();
+                          }, 100);
+                        };
+                        reader.readAsText(file);
+                        // Reset input for same file upload
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
                 </div>
-                <Textarea placeholder='[{"question": "...", "options": [...], "correct_answer": "...", "explanation": "..."}]' value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} rows={4} className="font-mono text-xs" />
-                <Button variant="outline" size="sm" onClick={handleJsonImport} disabled={!jsonInput.trim()}>{t("Import qilish")}</Button>
+                <Textarea
+                  placeholder='[{"question": "...", "options": [...], "correct_answer": "...", "explanation": "..."}]'
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+                <Button id="json-import-btn" variant="outline" size="sm" onClick={handleJsonImport} disabled={!jsonInput.trim()}>{t("Import qilish")}</Button>
               </div>
 
               {/* Questions */}
